@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pyshtools as pysh
 import matplotlib.pyplot as plt
 
@@ -12,6 +13,7 @@ class SphereHarmonics:
         self.normalization_method = normalization_method
         self.surface_data = surface_data
         self.harmonics = self.process()
+        self.extract_harmdata()
         self.lmax = self.harmonics.shape[1]
 
     def process(self):
@@ -39,6 +41,7 @@ class SphereHarmonics:
         # recomputes surface from harmonics
         self.surface_data = surface_data
         self.harmonics = self.process()
+        self.extract_harmdata()
         
     def plot_spectrum(self):
         # plot spectrum
@@ -46,13 +49,39 @@ class SphereHarmonics:
         clm.plot_spectrum(unit='per_l', xscale='log', yscale='log', show=False)
         plt.show()
 
+    def extract_harmdata(self):
+        # save harmonics to csv file
+        # collects amplitude power real, imaginary, phase order and harmonic pairs
+        harm = self.harmonics
+        harmdata = pd.DataFrame()
+        for degree in range(len(harm[0])):
+            for order in range(degree + 1):
+                harmdata = harmdata.append(pd.Series({'degree': int(degree),
+                                                      'order': int(order),
+                                                      'value': harm[0][degree, order]}), ignore_index=True)
 
-        # # Plot the power spectrum
-        # fig, ax = plt.subplots()
-        # ax.plot(spectrum['degrees'], spectrum['power'])
-        # ax.set_xlabel('Degree l')
-        # ax.set_ylabel('Power')
-        # ax.set_xlim(0, self.lmax)
-        # ax.set_ylim(0, None)
-        # ax.grid()
-        # plt.show()
+            for order in range(1, degree + 1):
+                harmdata = harmdata.append(pd.Series({'degree': int(degree),
+                                                      'order': -int(order),
+                                                      'value': harm[1][degree, order]}), ignore_index=True)
+
+        harmdata['amplitude'] = np.abs(harmdata['value'])
+        harmdata['power'] = harmdata['amplitude'] ** 2
+        harmdata['real'] = np.real(harmdata['value'])
+        harmdata['imag'] = np.imag(harmdata['value'])
+        harmdata['degree'] = np.int_(np.real(harmdata['degree']))
+        harmdata['order'] = np.int_(np.real(harmdata['order']))
+        harmdata['harmonic'] = ''
+        for i in range(len(harmdata)):
+            harmdata.at[i, 'harmonic'] = 'm=' + str(harmdata.iloc[i]['degree']) \
+                                         + ' n=' + str(harmdata.iloc[i]['order'])
+        self.harmdata = harmdata
+
+
+    def save_to_csv(self, filename, directory):
+        # creates dictories if not exist
+        import os
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        # saves harmonics to csv file
+        self.harmdata.to_csv(directory + '/' + filename, index=False)

@@ -34,6 +34,6 @@ class SphereHarmonics:
     def updates_surface(self, surface_data):
         # recomputes surface from harmonics
         self.surface_data = surface_data
-        self.harmonics = self.process(surface_data)
+        self.harmonics = self.process()
 
 

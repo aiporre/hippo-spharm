@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits import mplot3d
+from hippospharm.spharm import SphereHarmonics
 
 class Surface:
     def __init__(self, filename):
@@ -21,13 +22,19 @@ class Surface:
         # save file
         pass
 
+    def plot(self):
+        # plot surface
+        pass
 
-class Ellipsoid:
+
+class Ellipsoid(Surface):
     def __init__(self, a=1, b=1, c=3, N=20):
+        super().__init__(filename=None)
         self.x = 0
         self.y = 0
         self.z = 0
         self._generate_ellipsoid(a, b, c, N)
+        self.spharm = None
 
     def _generate_ellipsoid(self, a, b, c, N):
         """
@@ -72,6 +79,14 @@ class Ellipsoid:
         #ax.plot_trisurf(self.x, self.y, self.z, cmap='viridis', edgecolor='none')
         #ax.scatter(self.x, self.y, self.z, c=self.z, cmap='viridis', linewidth=0.5)
         ax.plot_surface(self.X, self.Y, self.Z, cmap='viridis', edgecolor='none')
+
+    def get_harmonics(self):
+        # compute harmonics
+        self.spharm = SphereHarmonics(self.R, normalization_method='mean')
+        return self.spharm.harmonics
+
+
+
 
 if __name__ == '__main__':
     # create elipsoid and plot

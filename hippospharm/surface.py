@@ -22,14 +22,14 @@ class Surface:
         pass
 
 
-class Elipsoid:
+class Ellipsoid:
     def __init__(self, a=1, b=1, c=3, N=20):
         self.x = 0
         self.y = 0
         self.z = 0
-        self._generate_elipsoid(a, b, c, N)
+        self._generate_ellipsoid(a, b, c, N)
 
-    def _generate_elipsoid(self, a, b, c, N):
+    def _generate_ellipsoid(self, a, b, c, N):
         """
         Generates an elipsoid
         
@@ -75,6 +75,6 @@ class Elipsoid:
 
 if __name__ == '__main__':
     # create elipsoid and plot
-    elipsoid = Elipsoid()
-    elipsoid.plot()
+    ellipsoid = Ellipsoid()
+    ellipsoid.plot()
     plt.show()

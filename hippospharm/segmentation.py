@@ -2,6 +2,11 @@ import numpy as np
 import SimpleITK as sitk
 from matplotlib import pyplot as plt
 import plotly.graph_objects as go
+from skimage import measure
+from skimage.segmentation import find_boundaries
+
+from hippospharm.surface import Surface
+
 
 class Image:
     def __init__(self, data=None, filename=None):
@@ -94,6 +99,65 @@ class Image:
         ax.scatter(x, y, z)
         if show:
             plt.show()
+
+    def get_isosurface(self, value=0.5, show=False, method='marching_cubes', spacing=(1, 1, 1)):
+        assert method in ['marching_cubes', 'boundary'], 'method must be marching_cubes or boundary'
+        # Generate a random 3D numpy array representing a volume
+        if method == 'marching_cubes':
+            volume = self.image
+            # Set the isovalue for the isosurface
+            iso_value = value
+
+            # Get the vertices and faces of the isosurface using marching cubes
+            vertices, faces, _, _ = measure.marching_cubes(volume, iso_value, spacing=spacing)
+            # put vertices in N x 3 array
+            data = np.array(vertices)
+            # creates instance of surface with data
+            surface = Surface(data=data)
+            # creates a plotly figure
+            if show:
+                # Create a figure and an Axes3D object
+                fig = plt.figure()
+                ax = fig.add_subplot(111, projection='3d')
+
+                # Plot the isosurface using the vertices and faces
+                ax.plot_trisurf(vertices[:, 0], vertices[:, 1], faces, vertices[:, 2])
+
+                # Set the limits for the x, y, and z axes
+                ax.set_xlim([0, volume.shape[0]])
+                ax.set_ylim([0, volume.shape[1]])
+                ax.set_zlim([0, volume.shape[2]])
+
+                # Set the labels for the x, y, and z axes
+                ax.set_xlabel('X axis')
+                ax.set_ylabel('Y axis')
+                ax.set_zlabel('Z axis')
+
+                # Show the plot
+                if show:
+                    plt.show()
+        else:
+            # check if image has only one value
+            if not np.unique(self.image).max() == 1 and not np.unique(self.image).min() == 0 and len(np.unique(self.image)) != 2:
+                raise ValueError('image has more than one value')
+            border = find_boundaries(self.image)*self.image
+            l = np.unique(border)[1]
+            print('---->>> label', l)
+            vertices = np.array(np.where(border == l))
+            for iv in range(3):
+                vertices[iv] = vertices[iv] * spacing[iv]
+            # make data a N x 3 array
+            data = np.array(vertices.transpose())
+            # creates instance of surface with data
+            surface = Surface(data=data)
+            # plot 3d scatter
+            if show:
+                fig = plt.figure()
+                ax = fig.add_subplot(111, projection='3d')
+                ax.scatter(vertices[0], vertices[1], vertices[2])
+                plt.show()
+        return surface
+
 class BrainImage(Image):
     def __init__(self, filename, mask_file=None, mask=None):
         self.image = self._read_image(filename)
@@ -169,10 +233,13 @@ if __name__ == '__main__':
 
     # get hippo right
     hippo = img.get_hippocampus(side='right')
-    hippo.plot_XY(show=True)
-    hippo.plot_3d(show=True)
+    # hippo.plot_XY(show=True)
+    # hippo.plot_3d(show=True)
 
     # get hippo left
     hippo = img.get_hippocampus(side='left')
-    hippo.plot_XY(show=True)
-    hippo.plot_3d(show=True)
+    # hippo.plot_XY(show=True)
+    # hippo.plot_3d(show=True)
+
+    # get isosurface
+    surface = hippo.get_isosurface(show=True, method='boundary')

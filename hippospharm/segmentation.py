@@ -243,3 +243,8 @@ if __name__ == '__main__':
 
     # get isosurface
     surface = hippo.get_isosurface(show=True, method='boundary')
+
+    # test get harmonics
+    harmonics = surface.get_harmonics()
+    harmonics.plot_spectrum()
+    harmonics.plot_spectrum2()

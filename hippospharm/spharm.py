@@ -1,20 +1,22 @@
+import os
 import numpy as np
 import pandas as pd
 import pyshtools as pysh
 import matplotlib.pyplot as plt
-
+import seaborn as sns
 
 class SphereHarmonics:
 
     def __init__(self, surface_data, normalization_method='zero'):
         # validate normalization method is zero or mean
-        if normalization_method not in ['zero', 'mean']:
+        if normalization_method is not None and normalization_method not in ['zero', 'mean']:
             raise ValueError("normalization_method must be either 'zero' or 'mean'")
         self.normalization_method = normalization_method
         self.surface_data = surface_data
         self.harmonics = self.process()
         self.extract_harmdata()
         self.lmax = self.harmonics.shape[1]
+        self.name = 'spharm'
 
     def process(self):
         # check if latitua and longitua are even number from surface
@@ -46,24 +48,26 @@ class SphereHarmonics:
     def plot_spectrum(self):
         # plot spectrum
         clm = pysh.SHCoeffs.from_array(self.harmonics)
-        clm.plot_spectrum(unit='per_l', xscale='log', yscale='log', show=False)
+        #clm.plot_spectrum(unit='per_l', xscale='log', yscale='log', show=False)
+        clm.plot_spectrum(show=False)
+        plt.show()
+        grid = clm.expand()
+        fig, ax = grid.plot(show=False)
         plt.show()
 
     def extract_harmdata(self):
         # save harmonics to csv file
         # collects amplitude power real, imaginary, phase order and harmonic pairs
         harm = self.harmonics
-        harmdata = pd.DataFrame()
+        harmdata = pd.DataFrame(columns=['degree', 'order', 'value'])
         for degree in range(len(harm[0])):
             for order in range(degree + 1):
-                harmdata = harmdata.append(pd.Series({'degree': int(degree),
-                                                      'order': int(order),
-                                                      'value': harm[0][degree, order]}), ignore_index=True)
+                harmdata.loc[len(harmdata)] = pd.Series({'degree': int(degree), 'order': int(order),'value': harm[0][degree, order]})
+
 
             for order in range(1, degree + 1):
-                harmdata = harmdata.append(pd.Series({'degree': int(degree),
-                                                      'order': -int(order),
-                                                      'value': harm[1][degree, order]}), ignore_index=True)
+                harmdata.loc[len(harmdata)] = pd.Series({'degree': int(degree), 'order': -int(order),'value': harm[1][degree, order]})
+
 
         harmdata['amplitude'] = np.abs(harmdata['value'])
         harmdata['power'] = harmdata['amplitude'] ** 2
@@ -85,3 +89,51 @@ class SphereHarmonics:
             os.makedirs(directory)
         # saves harmonics to csv file
         self.harmdata.to_csv(directory + '/' + filename, index=False)
+
+
+    def compute_power_spectrum(self, norm=False, filename=None, directory=None):
+        stat = self.harmdata.groupby(['degree']).sum().reset_index()
+        if norm:
+            maxline = stat[stat['degree'] == 0].iloc[0]
+            for col in stat.columns:
+                if col != 'degree':
+                    stat.loc[:, col] = stat[col] / maxline[col]
+        stat['amplitude'] = np.sqrt(stat['power'])
+        stat['harmonic'] = stat['degree']
+        self.frequency_spectrum = stat
+        if filename is not None and directory is not None:
+            # create directory
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            # generate a name for the frequency spectrum
+            self.frequency_spectrum['Name'] = filename.split('.')[0]
+            self.frequency_spectrum.to_csv(os.path.join(directory, filename), sep='\t', index=False)
+    def plot_spectrum(self, value='amplitude', title=None, cutoff=None, logscale=False, show=True, **kwargs):
+        norm = kwargs.pop('norm', False)
+        stat = self.harmdata
+        if norm:
+            stat.loc[:, value] = np.array(stat[value]) / stat[value].iloc[0]
+        if cutoff is not None:
+            stat = stat[stat.degree < cutoff]
+        if logscale:
+            stat.loc[:, value] = np.log(stat[value])
+        hm = stat.pivot(columns='degree', index='order', values=value)
+        plt.clf()
+        plt.figure(figsize=(6, 5))
+        pl = sns.heatmap(hm, **kwargs)
+        if title is None:
+            if self.name is not None:
+                title = self.name + '; value = ' + value
+            else:
+                title = 'value = ' + value
+        plt.title(title)
+        if show:
+            plt.show()
+        return pl.figure
+    def plot_spectrum2(self, show=True, **kwargs):
+        # plot spectrum
+        clm = pysh.SHCoeffs.from_array(self.harmonics)
+        #clm.plot_spectrum(unit='per_l', xscale='log', yscale='log', show=False)
+        clm.plot_spectrum2d(show=False, **kwargs)
+        if show:
+            plt.show()

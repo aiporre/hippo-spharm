@@ -244,7 +244,7 @@ if __name__ == '__main__':
     # hippo.plot_3d(show=True)
 
     # get isosurface
-    surface = hippo.get_isosurface(show=True, method='boundary', N=100)
+    surface = hippo.get_isosurface(show=True, method='marching_cubes', N=100)
 
     # test get harmonics
     print('calculating harmonics....')

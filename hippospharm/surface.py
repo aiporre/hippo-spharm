@@ -252,3 +252,5 @@ if __name__ == '__main__':
     ellipsoid_inv = ellipsoid.get_inverse_surface()
     ellipsoid_inv.plot()
     plt.show()
+
+    print('the features are: ', h.compute_features())

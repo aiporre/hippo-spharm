@@ -110,6 +110,7 @@ class SphereHarmonics:
             # generate a name for the frequency spectrum
             self.frequency_spectrum['Name'] = filename.split('.')[0]
             self.frequency_spectrum.to_csv(os.path.join(directory, filename), sep='\t', index=False)
+
     # def plot_spectrum(self, value='amplitude', title=None, cutoff=None, logscale=False, show=True, **kwargs):
     #     norm = kwargs.pop('norm', False)
     #     stat = self.harmdata
@@ -166,3 +167,20 @@ class SphereHarmonics:
 
         self.harmarray = harm
         return harm
+    
+    def compute_features(self , cutoff=None, static_features='amplitude', rotation_invariant=True):
+        stat = self.harmdata
+        if cutoff is None:
+            cutoff = np.max(stat.degree)
+        if static_features == 'real_imag':
+            static_features = ['real', 'imag']
+        else:
+            static_features = [static_features]
+        if rotation_invariant:
+            self.compute_power_spectrum(norm=False)
+            stat = self.frequency_spectrum
+
+        features = []
+        for value in static_features:
+            features = features + list(stat[value][stat.degree < cutoff + 1])
+        return np.array(features)

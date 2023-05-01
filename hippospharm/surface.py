@@ -50,7 +50,7 @@ class Surface:
             self._readfile(filename)
         elif data is not None:
             # assert data is an int or a tuple (N,N) or (N,2*N)
-            if isinstance(data, int):
+            if isinstance(N, int):
                 self.N = (N, N)
             elif isinstance(N, tuple):
                 assert (len(N) == 2), "N must be a tuple of length 2 or int"

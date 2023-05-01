@@ -100,7 +100,7 @@ class Image:
         if show:
             plt.show()
 
-    def get_isosurface(self, value=0.5, show=False, method='marching_cubes', spacing=(1, 1, 1)):
+    def get_isosurface(self, value=0.5, show=False, method='marching_cubes', spacing=(1, 1, 1), N=None):
         assert method in ['marching_cubes', 'boundary'], 'method must be marching_cubes or boundary'
         # Generate a random 3D numpy array representing a volume
         if method == 'marching_cubes':
@@ -112,8 +112,6 @@ class Image:
             vertices, faces, _, _ = measure.marching_cubes(volume, iso_value, spacing=spacing)
             # put vertices in N x 3 array
             data = np.array(vertices)
-            # creates instance of surface with data
-            surface = Surface(data=data)
             # creates a plotly figure
             if show:
                 # Create a figure and an Axes3D object
@@ -148,14 +146,18 @@ class Image:
                 vertices[iv] = vertices[iv] * spacing[iv]
             # make data a N x 3 array
             data = np.array(vertices.transpose())
-            # creates instance of surface with data
-            surface = Surface(data=data)
             # plot 3d scatter
             if show:
                 fig = plt.figure()
                 ax = fig.add_subplot(111, projection='3d')
                 ax.scatter(vertices[0], vertices[1], vertices[2])
                 plt.show()
+
+        # creates instance of surface with data
+        if N is None:
+            N = data.shape[0]
+            print('Waring: N is None, setting N to ', N)
+        surface = Surface(data=data, N=N)
         return surface
 
 class BrainImage(Image):
@@ -242,9 +244,12 @@ if __name__ == '__main__':
     # hippo.plot_3d(show=True)
 
     # get isosurface
-    surface = hippo.get_isosurface(show=True, method='boundary')
+    surface = hippo.get_isosurface(show=True, method='boundary', N=100)
 
     # test get harmonics
+    print('calculating harmonics....')
     harmonics = surface.get_harmonics()
+    print('done')
+    print('plotting harmonics....')
     harmonics.plot_spectrum()
     harmonics.plot_spectrum2()

@@ -51,9 +51,9 @@ class SphereHarmonics:
         #clm.plot_spectrum(unit='per_l', xscale='log', yscale='log', show=False)
         clm.plot_spectrum(show=False)
         plt.show()
-        grid = clm.expand()
-        fig, ax = grid.plot(show=False)
-        plt.show()
+        # grid = clm.expand()
+        # fig, ax = grid.plot(show=False)
+        # plt.show()
 
     def extract_harmdata(self):
         # save harmonics to csv file
@@ -108,28 +108,28 @@ class SphereHarmonics:
             # generate a name for the frequency spectrum
             self.frequency_spectrum['Name'] = filename.split('.')[0]
             self.frequency_spectrum.to_csv(os.path.join(directory, filename), sep='\t', index=False)
-    def plot_spectrum(self, value='amplitude', title=None, cutoff=None, logscale=False, show=True, **kwargs):
-        norm = kwargs.pop('norm', False)
-        stat = self.harmdata
-        if norm:
-            stat.loc[:, value] = np.array(stat[value]) / stat[value].iloc[0]
-        if cutoff is not None:
-            stat = stat[stat.degree < cutoff]
-        if logscale:
-            stat.loc[:, value] = np.log(stat[value])
-        hm = stat.pivot(columns='degree', index='order', values=value)
-        plt.clf()
-        plt.figure(figsize=(6, 5))
-        pl = sns.heatmap(hm, **kwargs)
-        if title is None:
-            if self.name is not None:
-                title = self.name + '; value = ' + value
-            else:
-                title = 'value = ' + value
-        plt.title(title)
-        if show:
-            plt.show()
-        return pl.figure
+    # def plot_spectrum(self, value='amplitude', title=None, cutoff=None, logscale=False, show=True, **kwargs):
+    #     norm = kwargs.pop('norm', False)
+    #     stat = self.harmdata
+    #     if norm:
+    #         stat.loc[:, value] = np.array(stat[value]) / stat[value].iloc[0]
+    #     if cutoff is not None:
+    #         stat = stat[stat.degree < cutoff]
+    #     if logscale:
+    #         stat.loc[:, value] = np.log(stat[value])
+    #     hm = stat.pivot(columns='degree', index='order', values=value)
+    #     plt.clf()
+    #     plt.figure(figsize=(6, 5))
+    #     pl = sns.heatmap(hm, **kwargs)
+    #     if title is None:
+    #         if self.name is not None:
+    #             title = self.name + '; value = ' + value
+    #         else:
+    #             title = 'value = ' + value
+    #     plt.title(title)
+    #     if show:
+    #         plt.show()
+    #     return pl.figure
     def plot_spectrum2(self, show=True, **kwargs):
         # plot spectrum
         clm = pysh.SHCoeffs.from_array(self.harmonics)

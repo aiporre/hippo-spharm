@@ -81,14 +81,17 @@ class Surface:
         # compute spherical coordinates
         self.r_vect, self.theta_vect, self.phi_vect = transform_cartesian_to_spherical(self.x, self.y, self.z)
         # compute grid
+        self._resample()
+
+    def _resample(self):
         self.R, self.Theta, self.Phi = interpolate_to_grid(self.r_vect, self.theta_vect, self.phi_vect, self.N)
         # recompute spherical as flatten of theta and phi
         self.theta_vect = self.Theta.flatten()
         self.phi_vect = self.Phi.flatten()
         # compute cartesian coordinates
-        self.x = self.R * np.sin(self.Theta) * np.cos(self.Phi)
-        self.y = self.R * np.sin(self.Theta) * np.sin(self.Phi)
-        self.z = self.R * np.cos(self.Theta)
+        self.X = self.R * np.sin(self.Theta) * np.cos(self.Phi)
+        self.Y = self.R * np.sin(self.Theta) * np.sin(self.Phi)
+        self.Z = self.R * np.cos(self.Theta)
 
     def _readgrid(self, grid):
         # assert that grid is NxN or Nx2*N
@@ -97,17 +100,22 @@ class Surface:
         assert len(grid.shape) == 2, 'grid must be a 2D array'
         self.R = grid
         N = grid.shape[0]
-        phi = np.linspace(0, 2 * np.pi, N, endpoint=False)  # azimuth
+        N2 = grid.shape[1]
+        phi = np.linspace(0, 2 * np.pi, N2, endpoint=False)  # azimuth
         theta = np.linspace(0, np.pi, N, endpoint=False)  # polar elevation
         self.Phi, self.Theta = np.meshgrid(phi, theta)
 
         # compute cartesian coordinates
-        self.x = self.R * np.sin(self.Theta) * np.cos(self.Phi)
-        self.y = self.R * np.sin(self.Theta) * np.sin(self.Phi)
-        self.z = self.R * np.cos(self.Theta)
+        self.X = self.R * np.sin(self.Theta) * np.cos(self.Phi)
+        self.Y = self.R * np.sin(self.Theta) * np.sin(self.Phi)
+        self.Z = self.R * np.cos(self.Theta)
         self.r_vect = self.R.flatten()
         self.phi_vect = self.Phi.flatten()
         self.theta_vect = self.Theta.flatten()
+        # convert x, y z from flatten
+        self.x = self.X.flatten()
+        self.y = self.Y.flatten()
+        self.z = self.Z.flatten()
 
         # data is centerd in the origin
         self.center = np.array([0, 0, 0])
@@ -118,6 +126,13 @@ class Surface:
     def save(self, output_filename):
         # save file
         pass
+
+    def get_inverse_surface(self, lmax=None):
+        # compute inverse surface
+        R = self.spharm.compute_inverse_surface(lmax)
+        return Surface(grid=R)
+
+
     def plot(self):
         # plot elipsoid
         ax = plt.axes(projection = '3d')
@@ -230,4 +245,10 @@ if __name__ == '__main__':
     # create sphere and plot
     sphere = Sphere(1, N=10)
     sphere.plot()
+    plt.show()
+
+    # get inverse of the elipsoid
+    h = ellipsoid.get_harmonics()
+    ellipsoid_inv = ellipsoid.get_inverse_surface()
+    ellipsoid_inv.plot()
     plt.show()

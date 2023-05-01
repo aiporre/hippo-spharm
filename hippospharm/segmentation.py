@@ -253,3 +253,13 @@ if __name__ == '__main__':
     print('plotting harmonics....')
     harmonics.plot_spectrum()
     harmonics.plot_spectrum2()
+    print('done')
+
+    # compute the harmonics for the surface
+    h = surface.get_harmonics()
+    surface.plot()
+    plt.show()
+    # get the inverser surface
+    surface_inverse = surface.get_inverse_surface()
+    surface_inverse.plot()
+    plt.show()

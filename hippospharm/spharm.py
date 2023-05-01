@@ -17,6 +17,7 @@ class SphereHarmonics:
         self.extract_harmdata()
         self.lmax = self.harmonics.shape[1]
         self.name = 'spharm'
+        self.sampling = None
 
     def process(self):
         # check if latitua and longitua are even number from surface
@@ -29,6 +30,7 @@ class SphereHarmonics:
             s = 2
         else:
             raise ValueError("Spherical grid must be either (NxN) or (Nx2N)")
+        self.sampling = s
 
         # normalize surface
         if self.normalization_method == 'mean':
@@ -137,3 +139,30 @@ class SphereHarmonics:
         clm.plot_spectrum2d(show=False, **kwargs)
         if show:
             plt.show()
+
+    def compute_inverse_surface(self, lmax):
+        # compute the array of harmonics
+        harmarray = self.convert_harmdata_to_harmarray()
+        # compute inverse surface from harmonics
+        R = pysh.expand.MakeGridDHC(harmarray, lmax_calc=lmax, sampling=self.sampling).real
+        return R
+    
+    
+    def convert_harmdata_to_harmarray(self):
+        """
+        Convert the spectrum from the table form to pyshtools format.
+        """
+        harmdata = self.harmdata
+        size = len(harmdata['degree'].unique())
+        harm = np.zeros([2, size, size], dtype=complex)
+        for degree in range(len(harm[0])):
+            for order in range(degree + 1):
+                line = harmdata[(harmdata['degree'] == degree) & (harmdata['order'] == order)].iloc[0]
+                harm[0][degree, order] = line['real'] + 1j * line['imag']
+
+            for order in range(1, degree + 1):
+                line = harmdata[(harmdata['degree'] == degree) & (harmdata['order'] == -order)].iloc[0]
+                harm[1][degree, order] = line['real'] + 1j * line['imag']
+
+        self.harmarray = harm
+        return harm

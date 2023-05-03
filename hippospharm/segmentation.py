@@ -105,6 +105,7 @@ class Image:
         # Generate a random 3D numpy array representing a volume
         if method == 'marching_cubes':
             volume = self.image
+            assert len(np.unique(volume)) == 2, 'image must be binary'
             # Set the isovalue for the isosurface
             iso_value = value
 

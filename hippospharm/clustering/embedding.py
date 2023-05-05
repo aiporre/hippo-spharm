@@ -21,7 +21,7 @@ class Embedding:
             # KMeans
             kmeans = KMeans(n_clusters=self.num_clusters, random_state=0).fit(z)
             clusters = kmeans.labels_
-        elif self.method.lower == 'tsne-kmeans':
+        elif self.method.lower() == 'tsne-kmeans':
             from sklearn.manifold import TSNE
             self.model = TSNE(n_components = self.dims, **self.kwargs)
             z = self.model.fit_transform(X)
@@ -35,4 +35,6 @@ class Embedding:
             z = self.model.predict(X)
             # clusting
             clusters = self.model.predict_km
+        else:
+            raise ValueError('Method {} not implemented'.format(self.method))
         return z, clusters

@@ -1,10 +1,38 @@
 import os
-
+import sys
 import multiprocessing
 import tqdm
 from hippmapper.cli import main
 
+
+def usage():
+    print("Usage python segmentation.py <dataset with sub-dirs>")
+    print(" -h, --help display this message")
+
+if "-h" in sys.argv or "--help" in sys.argv:
+    usage()
+    sys.exit(0)
+
+if len(sys.argv) < 2:
+    print("Error: Directory is missing")
+    usage()
+    sys.exit(0)
+
+dataset_path = sys.argv[1]
+
+if not os.path.isdir(dataset_path):
+    print("Error: Directory is missing", dataset_path, " is not a valid direcot")
+    usage()
+    sys.exit(0)
+
+
 subs = [f for f in os.listdir('./') if f.startswith('sub')]
+
+if len(subs) == 0:
+    print(f"Directory {dataset_path} has not sub-x directories containing data")
+    print("Done")
+    sys.exit(0)
+
 # find the inputs as dict
 def get_mri(sub):
     files = os.listdir(os.path.join(sub,'anat'))

@@ -18,6 +18,8 @@ tf.random.set_seed(0)
 random.seed(0)
 np.random.seed(0)
 
+from hippospharm.clustering.utils import *
+
 ############################################################################
 
 class AECM(tf.keras.Model):

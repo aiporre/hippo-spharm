@@ -29,10 +29,15 @@ def clustering(feat_csv, method='PCA-Kmeans', num_clusters=2, labels=None, metad
         # get labels
         if labels == 'age':
             y = feats['age'].values
+            y  = (y>30).astype('float32')
         elif labels == 'sex':
             y = feats['sex'].values
+            # transform to 0 and 1 from M and F
+            y = (y == 'M').astype('float32')
         elif labels == 'side':
             y = feats['side'].values
+            # transform to 0 and 1 from L and R
+            y = (y == 'left').astype('float32')
         else:
             y = feats['side'].values
     print(feats.head())
@@ -59,17 +64,25 @@ def clustering(feat_csv, method='PCA-Kmeans', num_clusters=2, labels=None, metad
         ax[0].legend()
         # plot color by side
         if  labels == 'side':
-            sides = y
+            sides = feats['side'].values
             for i in range(len(sides)):
                 if sides[i] == 'left':
                     ax[1].scatter(z[i,0], z[i,1], c='b')
                 elif sides[i] == 'right':
                     ax[1].scatter(z[i,0], z[i,1], c='r')
         elif labels == 'age':
-            ages = y
+            ages = feats['age'].values
             # if age is less that 30 years old, color is blue and if age is more than 30 years old, color is red
             for i in range(len(ages)):
                 if ages[i] < 30:
+                    ax[1].scatter(z[i,0], z[i,1], c='b')
+                else:
+                    ax[1].scatter(z[i, 0], z[i, 1], c='r')
+        elif labels == 'sex':
+            sexs = feats['sex'].values
+            # if sex is M blue if sex is F red
+            for i in range(len(sexs)-1):
+                if sexs[i] == 'M':
                     ax[1].scatter(z[i,0], z[i,1], c='b')
                 else:
                     ax[1].scatter(z[i, 0], z[i, 1], c='r')

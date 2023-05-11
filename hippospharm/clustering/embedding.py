@@ -2,6 +2,8 @@ from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 
+from hippospharm.clustering.embedding_AECM import EmbeddingAECM
+
 
 class Embedding:
     def __init__(self, method, dims=2, num_clusters=2, **kwargs):
@@ -30,11 +32,23 @@ class Embedding:
             clusters = kmeans.labels_
         elif self.method.lower() == 'aecm':
             from hippospharm.clustering.embedding_AECM import AECM
-            self.model = AECM(n_components = self.dims, **self.kwargs)
-            error =  self.model.fit(X)
-            z = self.model.predict(X)
-            # clusting
-            clusters = self.model.predict_km
+            X = X.astype('float32')
+            self.model = EmbeddingAECM(n_clusters=self.num_clusters, dims=self.dims,
+                                       X=X, y=y, **self.kwargs)
+            error =  self.model.fit(X, y)
+            z = self.model.embedding(X)
+            # clustering
+            clusters = self.model.predict(X)
+        elif self.method.lower() == 'aecm-kmeans':
+            from hippospharm.clustering.embedding_AECM import AECM
+            X = StandardScaler().fit_transform(X)
+            X = X.astype('float32')
+            self.model = EmbeddingAECM(n_clusters=self.num_clusters, dims=self.dims,
+                                       X=X, y=y, **self.kwargs)
+            error = self.model.fit(X, y)
+            z = self.model.embedding(X)
+            # clustering
+            clusters = self.model.predict_kmeans(X)
         else:
             raise ValueError('Method {} not implemented'.format(self.method))
         return z, clusters

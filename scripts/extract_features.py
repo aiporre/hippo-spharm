@@ -44,8 +44,9 @@ for filename, mask_file, sub in tqdm.tqdm(zip(files_corrected, files_hipp, subs)
     brain_image = BrainImage(filename, mask_file=mask_file)
     # create a list of right hippocampus
     right_hipp = brain_image.get_hippocampus('right')
+    spacing = right_hipp.get_spacing()
     # get features for each surface printing a progress bar with tqdm
-    surface = right_hipp.get_isosurface(show=False, method='marching_cubes', N=100)
+    surface = right_hipp.get_isosurface(show=False, method='marching_cubes', N=1000, spacing=spacing)
 
     feat_vector = get_features(surface)
     features.append(feat_vector)
@@ -53,8 +54,9 @@ for filename, mask_file, sub in tqdm.tqdm(zip(files_corrected, files_hipp, subs)
     side.append('right')
     # create a list of left hippocampus
     left_hipp = brain_image.get_hippocampus('left')
+    spacing = left_hipp.get_spacing()
     print('file', filename, 'left_hipp', left_hipp)
-    surface = left_hipp.get_isosurface(show=False, method='marching_cubes', N=100)
+    surface = left_hipp.get_isosurface(show=False, method='marching_cubes', N=1000, spacing=spacing)
     feat_vector = get_features(surface)
     features.append(feat_vector)
     subject.append(sub)

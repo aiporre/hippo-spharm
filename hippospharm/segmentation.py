@@ -164,6 +164,7 @@ class Image:
 class BrainImage(Image):
     def __init__(self, filename, mask_file=None, mask=None):
         self.image = self._read_image(filename)
+        self.filename = filename
         if mask_file is not None:
             self.mask = self._read_image(mask_file)
         if mask_file is None and mask is None:
@@ -171,6 +172,10 @@ class BrainImage(Image):
             self.mask = np.ones(self.image.shape)  # TODO: write code to segment the brain cortices
             print('done')
 
+    def get_spacing(self):
+        temp_image = sitk.ReadImage(self.filename)
+        spacing = temp_image.GetSpacing()
+        return spacing
 
     def get_hippocampus(self, side='left'):
         '''

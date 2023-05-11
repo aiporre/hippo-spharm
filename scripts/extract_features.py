@@ -20,7 +20,7 @@ print('Found ', len(subs), ' subjects')
 # find all corrected files
 files_corrected = [os.path.join(datapath, sub, 'anat', f) for sub in subs for f in os.listdir(os.path.join(datapath, sub, 'anat')) if f.endswith('corrected.nii.gz')]
 # find all segmentation files
-files_hipp = [os.path.join(datapath, sub, 'anat', f) for sub in subs for f in os.listdir(os.path.join(datapath, sub, 'anat')) if f.endswith('hipp.nii.gz')]
+files_hipp = [os.path.join(datapath, sub, 'anat', f) for sub in subs for f in os.listdir(os.path.join(datapath, sub, 'anat')) if f.endswith('seg.nii.gz')]
 print('Found ', len(files_hipp), ' hippocampus segmentation files')
 for i, f in enumerate(files_hipp):
     print(f'{i} : {f}')
@@ -87,4 +87,4 @@ df['side'] = side
 df.to_csv('features.csv', index=False)
 # print statistics of the dataframe and the size of csv file
 print(df.describe())
-print('size of csv file', os.path.getsize('../data/features/features.csv') / 1024 / 1024, 'MB')
+print('size of csv file', os.path.getsize('features.csv')/1024/1024, 'MB')

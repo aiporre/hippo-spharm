@@ -20,7 +20,7 @@ print('Found ', len(subs), ' subjects')
 # find all corrected files
 files_corrected = [os.path.join(datapath, sub, 'anat', f) for sub in subs for f in os.listdir(os.path.join(datapath, sub, 'anat')) if f.endswith('corrected.nii.gz')]
 # find all segmentation files
-files_hipp = [os.path.join(datapath, sub, 'anat', f) for sub in subs for f in os.listdir(os.path.join(datapath, sub, 'anat')) if f.endswith('hipp.nii.gz')]
+files_hipp = [os.path.join(datapath, sub, 'anat', f) for sub in subs for f in os.listdir(os.path.join(datapath, sub, 'anat')) if f.endswith('seg.nii.gz')]
 print('Found ', len(files_hipp), ' hippocampus segmentation files')
 for i, f in enumerate(files_hipp):
     print(f'{i} : {f}')

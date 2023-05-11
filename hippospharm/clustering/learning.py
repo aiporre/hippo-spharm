@@ -21,11 +21,15 @@ def load_metadata(features, metadata_csv):
         features.loc[features['subject'] == participant_id, 'sex'] = metadata.loc[metadata['participant_id'] == participant_id, 'sex'].values[0]
     return features
 
-def clustering(feat_csv, method='PCA-Kmeans', num_clusters=2, labels=None, metadata_csv=None ):
+def clustering(feat_csv, method='PCA-Kmeans', num_clusters=2, labels=None, metadata_csv=None , dims=2):
     # read csv
     feats = pd.read_csv(feat_csv)
     if metadata_csv is not None:
         feats = load_metadata(features=feats, metadata_csv=metadata_csv)
+        # filter right or left
+        #side = 'left'
+        #feats = feats.loc[feats['side'] == side]
+
         # get labels
         if labels == 'age':
             y = feats['age'].values
@@ -46,7 +50,7 @@ def clustering(feat_csv, method='PCA-Kmeans', num_clusters=2, labels=None, metad
     X = feats[feat_cols].values
 
     # create embedding
-    emb = Embedding(method=method, dims=2, num_clusters=
+    emb = Embedding(method=method, dims=dims, num_clusters=
             num_clusters)
     z, clusters = emb.fit(X, y=y)
     # plot

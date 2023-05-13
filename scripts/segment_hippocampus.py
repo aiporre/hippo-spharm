@@ -2,6 +2,7 @@ import os
 import sys
 import multiprocessing
 import tqdm
+import time
 from hippmapper.cli import main
 
 
@@ -9,6 +10,7 @@ def usage():
     print("Usage python segmentation.py [options] <dataset with sub-dirs>")
     print(" -h, --help display this message")
     print(" -b, --brain apply only brain extraction i.e. brain.nii.gz, otherwise apply in corrected.nii.gz")
+    print(" -p, --processes <number of processes> number of processes to run in parallel, default is 1")
 
 if "-h" in sys.argv or "--help" in sys.argv:
     usage()
@@ -18,16 +20,37 @@ if len(sys.argv) < 2:
     print("Error: Directory is missing")
     usage()
     sys.exit(0)
+
+# assert last argument is a directory
+dataset_path = sys.argv[-1]
+if not os.path.isdir(dataset_path):
+    print("Error: Directory is missing", dataset_path, " is not a valid direcot")
+    usage()
+    sys.exit(0)
+
 brain_extraction = False
+processes = 1
+PROCESSES = max(1, multiprocessing.cpu_count()-1)
 if len(sys.argv) == 3:
     if sys.argv[1] == '-b' or sys.argv[1] == '--brain':
         dataset_path = sys.argv[-1]
         print('brain extraction')
         brain_extraction = True
+    elif sys.argv[1] == '-p' or sys.argv[1] == '--processes':
+        dataset_path = sys.argv[-1]
+        print('processes')
+        processes = PROCESSES
     else:
         print('Error: Unknown option')
         usage()
         sys.exit(0)
+elif len(sys.argv) == 4:
+    options = sys.argv[1:3]
+    assert '-b' in options or '--brain' in options, "Error: Unknown option"
+    assert '-p' in options or '--processes' in options, "Error: Unknown option"
+    dataset_path = sys.argv[-1]
+    brain_extraction = True
+    processes = PROCESSES
 elif len(sys.argv) == 2:
     dataset_path = sys.argv[-1]
     brain_extraction = False
@@ -88,31 +111,46 @@ for f_in, f_out in zip(files_corrected, files_hipp):
         commands.append(['seg_hipp', '-t1', f_in, '-o', f_out])
 
 # run the commands
-for c in tqdm.tqdm(commands, desc='hipp segmentation', total=len(commands)):
-    # time this loop
-    print('''\n
-        # ------------------------> Hippocampus segmentation <------------------------
-       ''')
-    import time
-    start_time = time.time()
-    # main(c)
-    # Create a multiprocessing Process object for my_function
-    def execute_command(*c):
-        print('command', c)
-        c = list(c)
-        main(c)
-    # execute_command(c)
-    p = multiprocessing.Process(target=execute_command, args=(c))
 
-    # Start the process
-    p.start()
+def execute_command(*c):
+    print('command', c)
+    c = list(c)
+    main(c)
 
-    # Wait for the process to complete
-    p.join()
+def execute_command_multiprocessing(*c):
+    print('command', c)
+    c = list(c[0])
+    main(c)
 
-    print('Process completed')
-    print("--- %s seconds ---" % (time.time() - start_time))
-    # nice footer with ascii art
-    print('''\n
-        # ------------------------------------------------------------------------------
-         ''')
+if processes == 1:
+    for c in tqdm.tqdm(commands, desc='hipp segmentation', total=len(commands)):
+        # time this loop
+        print('''\n
+            # ------------------------> Hippocampus segmentation <------------------------
+           ''')
+        start_time = time.time()
+        # main(c)
+        # Create a multiprocessing Process object for my_function
+        # execute_command(c)
+        p = multiprocessing.Process(target=execute_command, args=(c))
+
+        # Start the process
+        p.start()
+
+        # Wait for the process to complete
+        p.join()
+
+        print('Process completed')
+        print("--- %s seconds ---" % (time.time() - start_time))
+        # nice footer with ascii art
+        print('''\n
+            # ------------------------------------------------------------------------------
+             ''')
+else:
+    # create a pool of processes=PROCESSES to run comand with arguments commands in parallel
+    pool = multiprocessing.Pool(processes=processes)
+    pool.map(execute_command_multiprocessing, commands)
+    pool.close()
+    pool.join()
+    print('Done')
+

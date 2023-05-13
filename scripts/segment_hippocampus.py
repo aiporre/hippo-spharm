@@ -148,9 +148,6 @@ if processes == 1:
              ''')
 else:
     # create a pool of processes=PROCESSES to run comand with arguments commands in parallel
-    pool = multiprocessing.Pool(processes=processes)
-    pool.map(execute_command_multiprocessing, commands)
-    pool.close()
-    pool.join()
-    print('Done')
-
+    with multiprocessing.Pool(processes=processes) as pool:
+        for _ in tqdm.tqdm(pool.imap_unordered(execute_command_multiprocessing, commands), desc='hipp segmentation', total=len(commands)):
+            pass

@@ -21,7 +21,7 @@ if processes == '-1':
     processes = PROCESSES
 brain_extraction = args.brain
 reoriented = args.reoriented
-if brain and reoriented:
+if brain_extraction and reoriented:
     print('Error: brain and reoriented are mutually exclusive')
     sys.exit(0)
 

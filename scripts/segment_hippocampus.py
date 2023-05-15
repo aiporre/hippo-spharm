@@ -30,7 +30,7 @@ if not os.path.isdir(dataset_path):
 
 brain_extraction = False
 processes = 1
-PROCESSES = max(1, multiprocessing.cpu_count()-1)
+PROCESSES = max(1, multiprocessing.cpu_count()-3)
 if len(sys.argv) == 3:
     if sys.argv[1] == '-b' or sys.argv[1] == '--brain':
         dataset_path = sys.argv[-1]

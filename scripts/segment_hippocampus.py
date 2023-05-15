@@ -19,6 +19,7 @@ PROCESSES = max(1, multiprocessing.cpu_count()-3)
 processes = args.processes
 if processes == -1:
     processes = PROCESSES
+    print('Using PROCESSES =', processes, ' out of ', multiprocessing.cpu_count(), ' cores available')
 brain_extraction = args.brain
 reoriented = args.reoriented
 if brain_extraction and reoriented:

@@ -36,7 +36,7 @@ if len(subs) == 0:
 # find the inputs as dict
 def get_mri(sub):
     files = os.listdir(os.path.join(dataset_path,sub,'anat'))
-    mri_file = [f for f in files if f.endswith('_brain.nii.gz')][0]
+    mri_file = [f for f in files if f.endswith('_T1w.nii.gz')][0]
     return os.path.join(dataset_path,sub, 'anat', mri_file)
 
 print('one mri file' , get_mri(subs[0]))

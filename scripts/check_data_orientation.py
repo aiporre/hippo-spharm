@@ -43,19 +43,6 @@ print('first file corrected,', files_corrected[0])
 import nibabel as nib
 
 
-def apply_affine(data, affine):
-    new_data = []
-    for i in range(data.shape[0]):
-        for j in range(data.shape[1]):
-            for k in range(data.shape[2]):
-                coord = (i, j, k)
-                transformed_coord = nib.affines.apply_affine(affine, coord)
-                x, y, z = transformed_coord
-                new_data.append(data[x, y, z])
-
-    new_data = np.asarray(new_data).reshape(data.shape)
-    return new_data
-
 def check_orientation(sub, f):
     img = nib.load(f)
     # print('header before', img.header)

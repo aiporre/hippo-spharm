@@ -10,7 +10,7 @@ import argparse
 # arg
 parser = argparse.ArgumentParser(description='hipp segmentation')
 parser.add_argument('dataset_path', type=str, help='dataset path')
-parser.add_argument('--processes', type=int, default=1, help='number of processes')
+parser.add_argument('-p', '--processes', type=int, default=1, help='number of processes')
 parser.add_argument('-b', '--brain', action='store_true', help='use brain extraction, default is bias correction')
 parser.add_argument('-r', '--reoriented', action='store_true', help='use reoriented extraction, default is bias correction')
 args = parser.parse_args()

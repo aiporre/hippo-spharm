@@ -15,9 +15,9 @@ parser.add_argument('-b', '--brain', action='store_true', help='use brain extrac
 parser.add_argument('-r', '--reoriented', action='store_true', help='use reoriented extraction, default is bias correction')
 args = parser.parse_args()
 dataset_path = args.dataset_path
-PROCESSES = max(1, multiprocessing.cpu_count()-1)
+PROCESSES = max(1, multiprocessing.cpu_count()-3)
 processes = args.processes
-if processes == '-1':
+if processes == -1:
     processes = PROCESSES
 brain_extraction = args.brain
 reoriented = args.reoriented

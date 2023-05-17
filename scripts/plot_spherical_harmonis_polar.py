@@ -1,6 +1,23 @@
+import sys
+
+import os
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.special import sph_harm
+import argparse
+
+import pyshtools as pysh
+from hippospharm.segmentation import BrainImage
+
+argparser = argparse.ArgumentParser()
+
+argparser.add_argument('-d', '--dir', type=str, help='dataset directory')
+argparser.add_argument('-s', '--subject', type=str, help='dataset file')
+argparser.add_argument('-N', '--num', type=int, help='number of harmonics')
+argparser.add_argument('-l', '--lmax', type=int, help='number of harmonics for reconstruction', default=10)
+args = argparser.parse_args()
+
 
 def get_harmonics(l, m, theta, phi):
     # Calculate the real spherical harmonics for l=2, m=1
@@ -19,9 +36,55 @@ x = np.sin(phi) * np.cos(theta)
 y = np.sin(phi) * np.sin(theta)
 z = np.cos(phi)
 
+# get surface from directory
+data_dir = args.dir
+subject = args.subject
+# /home/doom/Documents/Phd/data/aging_caroline_landalle/ds002872-download/sub-01/anat/sub-01_hipp.nii.gz""
+segmentation_file = os.path.join(data_dir, subject, 'anat', subject + '_hipp.nii.gz')
+data_file = os.path.join(data_dir, subject, 'anat', subject + '_corrected.nii.gz')
+# create a surface
+brain_image = BrainImage(data_file, segmentation_file)
+spacing = brain_image.get_spacing()
+brain_image.plot_3d_mask(show=True)
+sys.exit(0)
 
+hippocampus = brain_image.get_hippocampus('right')
+surface = hippocampus.get_isosurface(show=True, method='boundary', spacing=spacing, N=(500, 1000), presample=2)
+plt.figure()
+ax=surface.plot_scatter(show=False)
+ax.set_title('hippocampus surface scatter')
+
+# plot surface.R
+fig, ax = plt.subplots()
+ax.imshow(surface.R)
+harmonics = surface.get_harmonics()
+grid = pysh.SHCoeffs.from_array(harmonics.harmonics).expand()
+grid.plot()
+# grid.plot3d()
+harmonics.plot_spectrum()
+harmonics.plot_spectrum2(show=False)
+features = harmonics.compute_features(cutoff=args.num)
+
+plt.figure()
+reconstructed_surface = surface.get_inverse_surface(lmax=None)
+reconstructed_surface.plot_scatter(show=False)
+plt.title('reconstructed surface')
+
+fig, ax = plt.subplots()
+ax.imshow(reconstructed_surface.R)
+plt.title('reconstructed surface grid')
+
+# plot orignal surface in spheres
+plt.figure()
+surface.plot_sphere(show=False, title='original surface in sphere')
+
+plt.figure()
+reconstructed_surface.plot_sphere(show=False, title='reconstructed surface in sphere')
+
+# reconstructed_surface.plot(show=True, save='surf_org.vtk')
+# surface.plot(show=True, save='surf_harm.vtk')
 # plt.show()
-N = 4
+N = args.num
 center = N
 plot_ncols = 2*N-1
 plot_nrows = N

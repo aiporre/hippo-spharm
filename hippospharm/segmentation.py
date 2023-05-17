@@ -9,6 +9,22 @@ from skimage.segmentation import find_boundaries
 from hippospharm.surface import Surface
 
 
+def resample_volume(presample, volume):
+    N_v, M_v, P_v = volume.shape
+    # create a regular grid interpolator
+    interpolator = RegularGridInterpolator((np.arange(N_v), np.arange(M_v), np.arange(P_v)), volume,
+                                           method='nearest', bounds_error=False, fill_value=0)
+    # create a new grid with presample points
+    step_n, step_m, step_p = N_v * presample, M_v * presample, P_v * presample
+    # round steps
+    step_n, step_m, step_p = int(np.round(step_n)), int(np.round(step_m)), int(np.round(step_p))
+    Xp, Yp, Zp = np.meshgrid(np.linspace(0, N_v, step_n), np.linspace(0, M_v, step_m), np.linspace(0, P_v, step_p),
+                             indexing='ij')
+    # interpolate the image
+    volume = interpolator((Xp, Yp, Zp))
+    return volume
+
+
 class Image:
     def __init__(self, data=None, filename=None):
         self.image = 0
@@ -57,7 +73,6 @@ class Image:
         if show:
             plt.show()
         return ax1
-
     def plot_3d_web(self, show=False):
         # create a 3D plot with plotly
         N, M, P = self.image.shape
@@ -78,6 +93,40 @@ class Image:
         ))
         if show:
             fig.show()
+
+    def plot_3d_mask(self, show=False):
+        # plot brain image and mask in 3d
+        volume = self.image
+        volume = resample_volume(0.7, volume)
+        N, M, P = volume.shape
+        print('volume shape', volume.shape)
+        X, Y, Z = np.meshgrid(np.arange(N), np.arange(M), np.arange(P))
+        values = volume.flatten()
+        isomin = np.min(values) +10
+        isomax = np.max(values) + 0.1
+        print('iso min', isomin, 'iso max', isomax)
+
+        fig = go.Figure(data=go.Isosurface(
+            x=X.flatten(),
+            y=Y.flatten(),
+            z=Z.flatten(),
+            value=values,
+            isomin=isomin,
+            isomax=isomax,
+            opacity=0.5
+        ))
+        # fig = go.Figure(data=go.Volume(
+        #     x=X.flatten(),
+        #     y=Y.flatten(),
+        #     z=Z.flatten(),
+        #     value=values,
+        #     isomin=isomin,
+        #     isomax=isomax,
+        #     opacity=0.1,  # needs to be small to see through all surfaces
+        #     surface_count=50,  # needs to be a large number for good volume rendering
+        #     colorscale='Greys',
+        # ))
+        fig.show()
     def plot_3d(self, show=False):
         # create plot 3d with matplotlib
         # N, M, P = self.image.shape
@@ -121,16 +170,7 @@ class Image:
             assert presample > 0, 'presample must be positive'
             # presample the image 3d mask to increase the number of points
             # create a 3d grid
-            N, M, P = volume.shape
-            # create a regular grid interpolator
-            interpolator = RegularGridInterpolator((np.arange(N), np.arange(M), np.arange(P)), volume,
-                                                   method='nearest', bounds_error=False, fill_value=0)
-            # create a new grid with presample points
-            step_n, step_m, step_p = N * presample, M * presample, P * presample
-            Xp, Yp, Zp = np.meshgrid(np.linspace(0, N, step_n), np.linspace(0, M, step_m), np.linspace(0, P, step_p),
-                                     indexing='ij')
-            # interpolate the image
-            volume = interpolator((Xp, Yp, Zp))
+            volume = resample_volume(presample, volume)
             volume = np.round(volume).astype(int)
 
         # Generate a random 3D numpy array representing a volumek
@@ -192,6 +232,9 @@ class Image:
         surface = Surface(data=data, N=N, spacing=
                           spacing)
         return surface
+
+
+
 
 class BrainImage(Image):
     def __init__(self, filename, mask_file=None, mask=None):

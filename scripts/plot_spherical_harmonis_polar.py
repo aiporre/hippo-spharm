@@ -41,12 +41,11 @@ data_dir = args.dir
 subject = args.subject
 # /home/doom/Documents/Phd/data/aging_caroline_landalle/ds002872-download/sub-01/anat/sub-01_hipp.nii.gz""
 segmentation_file = os.path.join(data_dir, subject, 'anat', subject + '_hipp.nii.gz')
-data_file = os.path.join(data_dir, subject, 'anat', subject + '_corrected.nii.gz')
+data_file = os.path.join(data_dir, subject, 'anat', subject + '_brain.nii.gz')
 # create a surface
 brain_image = BrainImage(data_file, segmentation_file)
 spacing = brain_image.get_spacing()
-brain_image.plot_3d_mask(show=True)
-sys.exit(0)
+
 
 hippocampus = brain_image.get_hippocampus('right')
 surface = hippocampus.get_isosurface(show=True, method='boundary', spacing=spacing, N=(500, 1000), presample=2)

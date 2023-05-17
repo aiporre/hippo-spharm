@@ -35,7 +35,7 @@ class SphereHarmonics:
         # normalize surface
         if self.normalization_method == 'mean':
             self.surface_data = self.surface_data / np.mean(self.surface_data)
-        self.harmonics = pysh.expand.SHExpandDH(self.surface_data, sampling=s)
+        self.harmonics = pysh.expand.SHExpandDHC(self.surface_data, sampling=s)
         if self.normalization_method == 'zero':
             # surface divided by the first harmonic
             self.harmonics = self.harmonics / self.harmonics[0, 0, 0]
@@ -47,12 +47,13 @@ class SphereHarmonics:
         self.harmonics = self.process()
         self.extract_harmdata()
         
-    def plot_spectrum(self):
+    def plot_spectrum(self, show=False):
         # plot spectrum
         clm = pysh.SHCoeffs.from_array(self.harmonics)
         #clm.plot_spectrum(unit='per_l', xscale='log', yscale='log', show=False)
         clm.plot_spectrum(show=False)
-        plt.show()
+        if show:
+            plt.show()
         # grid = clm.expand()
         # fig, ax = grid.plot(show=False)
         # plt.show()
@@ -143,9 +144,11 @@ class SphereHarmonics:
 
     def compute_inverse_surface(self, lmax):
         # compute the array of harmonics
-        harmarray = self.convert_harmdata_to_harmarray()
+        # harmarray = self.convert_harmdata_to_harmarray()
         # compute inverse surface from harmonics
-        R = pysh.expand.MakeGridDHC(harmarray, lmax_calc=lmax, sampling=self.sampling).real
+        # R = pysh.expand.MakeGridDHC(self.harmonics, lmax_calc=lmax, sampling=self.sampling).real
+        R = pysh.SHCoeffs.from_array(self.harmonics).expand(lmax=lmax).data.real
+        R = R[:-1,:-1] # remove the last two rows and columns
         return R
     
     

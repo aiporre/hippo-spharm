@@ -1,3 +1,5 @@
+# import os,sys,time,copy,argparse
+
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -12,7 +14,12 @@ tf.random.set_seed(0)
 random.seed(0)
 np.random.seed(0)
 
+from sklearn.cluster import KMeans
 from scipy.optimize import linear_sum_assignment
+from sklearn.preprocessing import label_binarize as binarizer
+
+from sklearn.metrics import adjusted_rand_score as ari
+from sklearn.metrics import normalized_mutual_info_score as nmi
 
 
 def acc(y_true, y_pred):

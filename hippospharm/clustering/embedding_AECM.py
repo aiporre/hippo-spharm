@@ -464,7 +464,7 @@ class RunHistory:
 class EmbeddingAECM:
     def __init__(self, n_clusters, dims, X=None, y=None, pretrain=False, dataset_name='Hipp',
                  save=False, save_dir='clusterings',
-                 num_samples=None, num_input_features = None, *args, **kwargs):
+                 num_samples=None, num_input_features = None, epochs=1000, *args, **kwargs):
         # wrapper class for the AECM model
         NAME  = dataset_name.upper()#  'dataset_name'# args.dataset.upper()
         INIT  = 'random' if not pretrain else 'pre'# can alos bie pred args.init.lower()
@@ -545,7 +545,7 @@ class EmbeddingAECM:
         self.BATCH= BATCH
         self.NAME = NAME
         self.N = N
-        self.epoch_size = 10000
+        self.epoch_size = epochs
 
     def fit(self, X, y=None):
         epc = self.MODEL.fit(

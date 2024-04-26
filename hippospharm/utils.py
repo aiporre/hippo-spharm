@@ -11,3 +11,10 @@ def transform_cartesian_to_spherical(x, y,z):
     theta = np.arccos(z * 1. / r)
     phi = np.arctan2(y, x) + np.pi
     return r, theta, phi
+
+
+def transform_spherical_to_cartesian(r, theta, phi):
+    x = r * np.sin(theta) * np.cos(phi)
+    y = r * np.sin(theta) * np.sin(phi)
+    z = r * np.cos(theta)
+    return x, y, z

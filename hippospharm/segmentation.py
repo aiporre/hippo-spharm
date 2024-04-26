@@ -2,10 +2,27 @@ import numpy as np
 import SimpleITK as sitk
 from matplotlib import pyplot as plt
 import plotly.graph_objects as go
+from scipy.interpolate import RegularGridInterpolator
 from skimage import measure
 from skimage.segmentation import find_boundaries
 
 from hippospharm.surface import Surface
+
+
+def resample_volume(presample, volume):
+    N_v, M_v, P_v = volume.shape
+    # create a regular grid interpolator
+    interpolator = RegularGridInterpolator((np.arange(N_v), np.arange(M_v), np.arange(P_v)), volume,
+                                           method='nearest', bounds_error=False, fill_value=0)
+    # create a new grid with presample points
+    step_n, step_m, step_p = N_v * presample, M_v * presample, P_v * presample
+    # round steps
+    step_n, step_m, step_p = int(np.round(step_n)), int(np.round(step_m)), int(np.round(step_p))
+    Xp, Yp, Zp = np.meshgrid(np.linspace(0, N_v, step_n), np.linspace(0, M_v, step_m), np.linspace(0, P_v, step_p),
+                             indexing='ij')
+    # interpolate the image
+    volume = interpolator((Xp, Yp, Zp))
+    return volume
 
 
 class Image:
@@ -56,7 +73,6 @@ class Image:
         if show:
             plt.show()
         return ax1
-
     def plot_3d_web(self, show=False):
         # create a 3D plot with plotly
         N, M, P = self.image.shape
@@ -77,6 +93,40 @@ class Image:
         ))
         if show:
             fig.show()
+
+    def plot_3d_mask(self, show=False):
+        # plot brain image and mask in 3d
+        volume = self.image
+        volume = resample_volume(0.7, volume)
+        N, M, P = volume.shape
+        print('volume shape', volume.shape)
+        X, Y, Z = np.meshgrid(np.arange(N), np.arange(M), np.arange(P))
+        values = volume.flatten()
+        isomin = np.min(values) +10
+        isomax = np.max(values) + 0.1
+        print('iso min', isomin, 'iso max', isomax)
+
+        fig = go.Figure(data=go.Isosurface(
+            x=X.flatten(),
+            y=Y.flatten(),
+            z=Z.flatten(),
+            value=values,
+            isomin=isomin,
+            isomax=isomax,
+            opacity=0.5
+        ))
+        # fig = go.Figure(data=go.Volume(
+        #     x=X.flatten(),
+        #     y=Y.flatten(),
+        #     z=Z.flatten(),
+        #     value=values,
+        #     isomin=isomin,
+        #     isomax=isomax,
+        #     opacity=0.1,  # needs to be small to see through all surfaces
+        #     surface_count=50,  # needs to be a large number for good volume rendering
+        #     colorscale='Greys',
+        # ))
+        fig.show()
     def plot_3d(self, show=False):
         # create plot 3d with matplotlib
         # N, M, P = self.image.shape
@@ -100,11 +150,31 @@ class Image:
         if show:
             plt.show()
 
-    def get_isosurface(self, value=0.5, show=False, method='marching_cubes', spacing=(1, 1, 1), N=None):
+    def get_isosurface(self, value=0.5, show=False, method='marching_cubes', spacing=(1, 1, 1), N=None, presample=None,
+                       crop=True):
         assert method in ['marching_cubes', 'boundary'], 'method must be marching_cubes or boundary'
-        # Generate a random 3D numpy array representing a volume
+        volume = self.image
+        # crop around the volume
+        if crop:
+            # Get the indices of the non-zero elements in the volume mask
+            x, y, z = volume.nonzero()
+            # Get the min and max values for each dimension
+            x_min, x_max = x.min(), x.max()
+            y_min, y_max = y.min(), y.max()
+            z_min, z_max = z.min(), z.max()
+            # Crop the volume around the non-zero elements
+            volume = volume[x_min:x_max, y_min:y_max, z_min:z_max]
+
+        if presample is not None:
+            assert isinstance(presample, int), 'presample must be an integer'
+            assert presample > 0, 'presample must be positive'
+            # presample the image 3d mask to increase the number of points
+            # create a 3d grid
+            volume = resample_volume(presample, volume)
+            volume = np.round(volume).astype(int)
+
+        # Generate a random 3D numpy array representing a volumek
         if method == 'marching_cubes':
-            volume = self.image
             assert len(np.unique(volume)) == 2, 'image must be binary'
             # Set the isovalue for the isosurface
             iso_value = value
@@ -123,9 +193,10 @@ class Image:
                 ax.plot_trisurf(vertices[:, 0], vertices[:, 1], faces, vertices[:, 2])
 
                 # Set the limits for the x, y, and z axes
-                ax.set_xlim([0, volume.shape[0]])
-                ax.set_ylim([0, volume.shape[1]])
-                ax.set_zlim([0, volume.shape[2]])
+                # ax.set_xlim([0, volume.shape[0]])
+                # ax.set_ylim([0, volume.shape[1]])
+                # ax.set_zlim([0, volume.shape[2]])
+                ax.set_box_aspect(spacing)
 
                 # Set the labels for the x, y, and z axes
                 ax.set_xlabel('X axis')
@@ -137,9 +208,9 @@ class Image:
                     plt.show()
         else:
             # check if image has only one value
-            if not np.unique(self.image).max() == 1 and not np.unique(self.image).min() == 0 and len(np.unique(self.image)) != 2:
+            if not np.unique(volume).max() == 1 and not np.unique(volume).min() == 0 and len(np.unique(volume)) != 2:
                 raise ValueError('image has more than one value')
-            border = find_boundaries(self.image)*self.image
+            border = find_boundaries(volume)*volume
             l = np.unique(border)[1]
             print('---->>> label', l)
             vertices = np.array(np.where(border == l))
@@ -158,8 +229,12 @@ class Image:
         if N is None:
             N = data.shape[0]
             print('Waring: N is None, setting N to ', N)
-        surface = Surface(data=data, N=N)
+        surface = Surface(data=data, N=N, spacing=
+                          spacing)
         return surface
+
+
+
 
 class BrainImage(Image):
     def __init__(self, filename, mask_file=None, mask=None):

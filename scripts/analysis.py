@@ -9,7 +9,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Clustering hippocampus surfaces')
     parser.add_argument('--features', type=str, help='path to features csv file')
     parser.add_argument('--metadata', type=str, help='path to metadata csv file')
-    parser.add_argument('--num_clusters', type=int, help='number of clusters', default=2)
+    parser.add_argument('--num-clusters', type=int, help='number of clusters', default=2)
     parser.add_argument('--labels', type=str, help='column name in metadata to use as labels', default='age')
     parser.add_argument('--method', type=str, help='clustering method', default='AECM-KMeans')
     parser.add_argument('--dims', type=int, help='number of dimensions for embedding', default=2)

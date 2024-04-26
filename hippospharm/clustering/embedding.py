@@ -25,16 +25,24 @@ class Embedding:
             kmeans = KMeans(n_clusters=self.num_clusters, random_state=0).fit(z)
             clusters = kmeans.labels_
             if self.dims>2:
-                dim_model = TSNE(n_components = 2, **self.kwargs)
+                dim_model = TSNE(n_components = 2)
                 z = dim_model.fit_transform(z)
         elif self.method.lower() == 'tsne-kmeans':
-            self.model = TSNE(n_components = self.dims, **self.kwargs)
+            self.model = TSNE(n_components = self.dims)
             z = self.model.fit_transform(X)
             # KMeans
             kmeans = KMeans(n_clusters=self.num_clusters, random_state=0).fit(z)
             clusters = kmeans.labels_
             if self.dims>2:
-                dim_model = TSNE(n_components = 2, **self.kwargs)
+                dim_model = TSNE(n_components = 2)
+                z = dim_model.fit_transform(z)
+        elif self.method.lower() == 'kmeans':
+            z = X
+            # KMeans
+            kmeans = KMeans(n_clusters=self.num_clusters, random_state=0).fit(z)
+            clusters = kmeans.labels_
+            if self.dims > 2:
+                dim_model = TSNE(n_components=2)
                 z = dim_model.fit_transform(z)
         elif self.method.lower() == 'aecm':
             from hippospharm.clustering.embedding_AECM import AECM
@@ -47,7 +55,7 @@ class Embedding:
             clusters = self.model.predict(X)
             # dimensioality reduction
             if self.dims>2:
-                dim_model = TSNE(n_components = 2, **self.kwargs)
+                dim_model = TSNE(n_components = 2)
                 z = dim_model.fit_transform(z)
         elif self.method.lower() == 'aecm-kmeans':
             from hippospharm.clustering.embedding_AECM import AECM
@@ -61,7 +69,7 @@ class Embedding:
             clusters = self.model.predict_kmeans(X)
             # dimensioality reduction
             if self.dims>2:
-                dim_model = TSNE(n_components = 2, **self.kwargs)
+                dim_model = TSNE(n_components = 2)
                 z = dim_model.fit_transform(z)
         else:
             raise ValueError('Method {} not implemented'.format(self.method))

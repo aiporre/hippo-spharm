@@ -87,12 +87,25 @@ for f_in, f_out in zip(files_input, files_hipp):
 def execute_command(*c):
     print('command', c)
     c = list(c)
-    main(c)
+    start_time = time.time()
+    f_out = c[-1]
+    if not os.path.exists(f_out):
+        main(c)
+        print(f'file out generated {f_out}')
+    else:
+        print(f"{f_out} exists, skipping")
+
+    print("--- %s seconds ---" % (time.time() - start_time))
 
 def execute_command_multiprocessing(*c):
     print('command', c)
     c = list(c[0])
-    main(c)
+    start_time = time.time()
+    f_out = c[-1]
+    if not os.path.exists(f_out):
+        main(c)
+    print(f'file out generated {f_out}')
+    print("--- %s seconds ---" % (time.time() - start_time))
 
 if processes == 1:
     for c in tqdm.tqdm(commands, desc='hipp segmentation', total=len(commands)):

@@ -41,12 +41,14 @@ def get_features(surface):
     return harmonics.compute_features()
 
 for filename, mask_file, sub in tqdm.tqdm(zip(files_corrected, files_hipp, subs), desc='loading images', total=len(files_corrected)):
+    print('---->> processing: ', filename)
     brain_image = BrainImage(filename, mask_file=mask_file)
     spacing = brain_image.get_spacing()
     # create a list of right hippocampus
     right_hipp = brain_image.get_hippocampus('right')
     # get features for each surface printing a progress bar with tqdm
-    surface = right_hipp.get_isosurface(show=False, method='marching_cubes', N=1000, spacing=spacing)
+    N = 500 
+    surface = right_hipp.get_isosurface(show=False, method='marching_cubes', N=N, spacing=spacing)
 
     feat_vector = get_features(surface)
     features.append(feat_vector)
@@ -55,11 +57,12 @@ for filename, mask_file, sub in tqdm.tqdm(zip(files_corrected, files_hipp, subs)
     # create a list of left hippocampus
     left_hipp = brain_image.get_hippocampus('left')
     print('file', filename, 'left_hipp', left_hipp)
-    surface = left_hipp.get_isosurface(show=False, method='marching_cubes', N=1000, spacing=spacing)
+    surface = left_hipp.get_isosurface(show=False, method='marching_cubes', N=N, spacing=spacing)
     feat_vector = get_features(surface)
     features.append(feat_vector)
     subject.append(sub)
     side.append('left')
+
 # # create a list of right hippocampus
 # right_hipp = [b.get_hippocampus('right') for b in tqdm.tqdm(brain_images, desc='extracting right hippocampus', total=len(brain_images))]
 # # get features for each surface printing a progress bar with tqdm

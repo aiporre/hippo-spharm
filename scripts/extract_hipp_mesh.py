@@ -2,7 +2,7 @@
 # the features are computed in each hippocampus right and left.
 
 import os
-from hippospharm.segmentation import BrainImage
+from hippospharm.segmentation import BrainImage, Mesh
 import multiprocessing
 import tqdm
 import sys
@@ -29,66 +29,35 @@ print('processing....')
 # create a list of BrainImages
 
 # brain_images = [BrainImage(filename, mask_file=mask_file) for filename, mask_file in tqdm.tqdm(zip(files_corrected, files_hipp), desc='loading images', total=len(files_corrected))]
+# create a folder called models in datapath
+models_path = os.path.join(datapath, 'models')
+if not os.path.exists(models_path):
+    os.makedirs(models_path)
+    print('Created models folder')
+else:
+    print('models folder already exists models will be overwritten')
 
-# init list of features
-features = [] # list of np.arrays contianing the features
-subject = [] # list of subject names as strings
-side = [] # list of strings 'right' or 'left'
-def get_features(surface):
-    # get harmonics
-    harmonics = surface.get_harmonics()
-    # get features
-    return harmonics.compute_features()
+
 
 for filename, mask_file, sub in tqdm.tqdm(zip(files_corrected, files_hipp, subs), desc='loading images', total=len(files_corrected)):
     print('---->> processing: ', filename)
     brain_image = BrainImage(filename, mask_file=mask_file)
+    print('brain_image', filename)
+    print('mask fiel', mask_file)
+    # create the model name file in models folder with sub-XX_hip.obj
+    model_name_prefix = os.path.join(models_path, sub + '_hip')
     spacing = brain_image.get_spacing()
     # create a list of right hippocampus
     right_hipp = brain_image.get_hippocampus('right')
     # get features for each surface printing a progress bar with tqdm
     N = 500 
-    surface = right_hipp.get_isosurface(show=False, method='marching_cubes', N=N, spacing=spacing)
-
-    feat_vector = get_features(surface)
-    features.append(feat_vector)
-    subject.append(sub)
-    side.append('right')
+    V_r, F_r = right_hipp.get_isosurface(value=0.5, presample=1, show=False, method='marching_cubes', N=500, spacing=spacing, as_surface=False)
+    surface = Mesh(V_r, F_r)
+    surface.save(model_name_prefix + '_right.obj')
     # create a list of left hippocampus
     left_hipp = brain_image.get_hippocampus('left')
-    print('file', filename, 'left_hipp', left_hipp)
-    surface = left_hipp.get_isosurface(show=False, method='marching_cubes', N=N, spacing=spacing)
-    feat_vector = get_features(surface)
-    features.append(feat_vector)
-    subject.append(sub)
-    side.append('left')
+    V_l, F_l = left_hipp.get_isosurface(value=0.5, presample=1, show=False, method='marching_cubes', N=500, spacing=spacing, as_surface=False)
+    surface = Mesh(V_l, F_l)
+    surface.save(model_name_prefix + '_left.obj')
 
-# # create a list of right hippocampus
-# right_hipp = [b.get_hippocampus('right') for b in tqdm.tqdm(brain_images, desc='extracting right hippocampus', total=len(brain_images))]
-# # get features for each surface printing a progress bar with tqdm
-# for surface, sub in tqdm.tqdm(zip(right_hipp, subs), desc='features from right hippocampus', total=len(right_hipp)):
-#     feat_vector = get_features(surface)
-#     features.append(feat_vector)
-#     subject.append(sub)
-#     side.append('right')
-#
-#
-# # create a list of left hippocampus
-# left_hipp = [b.get_hippocampus('left') for b in tqdm.tqdm(brain_images, desc='extracting left hippocampus', total=len(brain_images))]
-# for surface, sub in tqdm.tqdm(zip(left_hipp, subs), desc='features from left hippocampus', total=len(left_hipp)):
-#     feat_vector = get_features(surface)
-#     features.append(feat_vector)
-#     subject.append(sub)
-#     side.append('left')
 
-# create dataframe and save in csv with features in individual columns
-import pandas as pd
-N = len(features[0])
-column_names = ['feat_' + str(i) for i in range(N)]
-df = pd.DataFrame(features, columns=column_names)
-df['subject'] = subject
-df['side'] = side
-df.to_csv('features.csv', index=False)
-# print statistics of the dataframe and the size of csv file
-print(df.describe())
-print('size of csv file', os.path.getsize('features.csv')/1024/1024, 'MB')

@@ -16,7 +16,6 @@ def plot_hippocampus(filepath, maskpath):
 
     # Plot right hippocampus
     right_hipp = brain_image.get_hippocampus('right')
-    right_hipp.save('right_hippocampus.raw')
     vertices_r, faces_r = right_hipp.get_isosurface(value=0.5, presample=1, show=False, method='marching_cubes', N=500, spacing=spacing, as_surface=False,)
     surface = Mesh(vertices_r, faces_r)
     surface.plot(show=True)

@@ -14,9 +14,9 @@ def find_sessions(subs_list):
     # this corrections is necesary for the ADNI dataset which as more giles.
     sessions = []
     for sub in subs_list:
-        session_dirs = [f for f in os.listdir(os.path.join(dataset_path,sub)) if f.startswith('ses')]
+        session_dirs = [os.path.join(sub,f) for f in os.listdir(os.path.join(dataset_path,sub)) if f.startswith('ses')]
         # add al the sessions found 
-        sessions.expand(sessions_dirs)
+        sessions.extend(session_dirs)
     return sessions
     
 
@@ -48,7 +48,9 @@ elif len(sys.argv)>3:
 dataset_path = sys.argv[1]
 if len(sys.argv) == 3:
     options = sys.argv[2]
-    look_sessions_flag = True if options.startswith('-s') else False
+    is_find_sessions = True if options.startswith('-s') else False
+else:
+    is_find_sessions = False
 
 if not os.path.isdir(dataset_path):
     print("Error: Directory is missing", dataset_path, " is not a valid direcot")
@@ -57,7 +59,7 @@ if not os.path.isdir(dataset_path):
 
 # look for paths to proecess
 subs = [f for f in os.listdir(dataset_path) if f.startswith('sub')]
-if look_for_sessions_flag:
+if is_find_sessions:
     print('completing the session in the subs directories')
     subs = find_sessions(subs)
 print(f'processing subs : {len(subs)}')
@@ -81,7 +83,10 @@ def make_output(f_input, sub,  suffix):
     var_path = os.path.dirname(f_input)
     var_path = os.path.join(var_path,  sub + '_' + suffix + '.nii.gz')
     return var_path
-files_corrected = [make_output(f_in, sub, 'corrected') for f_in, sub in zip(files_input, subs)]
+if is_find_sessions:
+    files_corrected = [make_output(f_in, sub.replace('/', '_'), 'corrected') for f_in, sub in zip(files_input, subs)]
+else:
+    files_corrected = [make_output(f_in, sub, 'corrected') for f_in, sub in zip(files_input, subs)]
 
 print('first file input,', files_input[0])
 print('first file corrected,', files_corrected[0])

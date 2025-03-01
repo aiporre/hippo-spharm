@@ -6,9 +6,26 @@ from hippmapper.cli import main
 
 
 def usage():
-    print("Usage python segmentation.py <dataset with sub-dirs>")
+    print("Usage python segmentation.py <dataset with sub-dirs> [options]")
     print(" -h, --help display this message")
+    print(" -s, --look for sessions")
 
+def find_sessions(subs_list):
+    # this corrections is necesary for the ADNI dataset which as more giles.
+    sessions = []
+    for sub in subs_list:
+        session_dirs = [f for f in os.listdir(os.path.join(dataset_path,sub)) if f.startswith('ses')]
+        # add al the sessions found 
+        sessions.expand(sessions_dirs)
+    return sessions
+    
+
+def get_mri(sub):
+    files = os.listdir(os.path.join(dataset_path,sub,'anat'))
+    mri_file = [f for f in files if f.endswith('_T1w.nii.gz')][0]
+    return os.path.join(dataset_path,sub, 'anat', mri_file)
+
+# parsing argumtens
 if "-h" in sys.argv or "--help" in sys.argv:
     usage()
     sys.exit(0)
@@ -16,17 +33,35 @@ if "-h" in sys.argv or "--help" in sys.argv:
 if len(sys.argv) < 2:
     print("Error: Directory is missing")
     usage()
-    sys.exit(0)
+    sys.exit(1)
+elif len(sys.argv) == 2 or len(sys.argv) == 3:
+    # assert the second argument doesn't start with -s
+    if sys.argv[1].startswith('-s'):
+        print("Error: Direcry is missing")
+        usage()
+        sys.exit(1)
+elif len(sys.argv)>3:
+    print('more than 3 arguments is not allowed')
+    usage()
+    sys.exit(1)
 
 dataset_path = sys.argv[1]
+if len(sys.argv) == 3:
+    options = sys.argv[2]
+    look_sessions_flag = True if options.startswith('-s') else False
 
 if not os.path.isdir(dataset_path):
     print("Error: Directory is missing", dataset_path, " is not a valid direcot")
     usage()
     sys.exit(0)
 
-
+# look for paths to proecess
 subs = [f for f in os.listdir(dataset_path) if f.startswith('sub')]
+if look_for_sessions_flag:
+    print('completing the session in the subs directories')
+    subs = find_sessions(subs)
+print(f'processing subs : {len(subs)}')
+
 
 if len(subs) == 0:
     print(f"Directory {dataset_path} has not sub-x directories containing data")
@@ -34,14 +69,11 @@ if len(subs) == 0:
     sys.exit(0)
 
 # find the inputs as dict
-def get_mri(sub):
-    files = os.listdir(os.path.join(dataset_path,sub,'anat'))
-    mri_file = [f for f in files if f.endswith('_T1w.nii.gz')][0]
-    return os.path.join(dataset_path,sub, 'anat', mri_file)
 
 print('one mri file' , get_mri(subs[0]))
 
 # make a list of inputs
+
 files_input = [get_mri(sub) for sub in subs]
 
 # make a list of outputs changing a suffix -corrected.nii.gz

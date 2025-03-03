@@ -4,13 +4,16 @@ import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+import nibabel as nib
 parser = argparse.ArgumentParser(description='Check orientation of nifti files in the dataset')
 parser.add_argument('dataset_path', help='Path to the dataset')
 parser.add_argument('-b', '--brain', action='store_true', help='Use brain extracted images')
+parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions'),
 
 args = parser.parse_args()
 dataset_path = args.dataset_path
 brain_extraction = args.brain
+is_search_sessions = args.sessions
 subs = [f for f in os.listdir(dataset_path) if f.startswith('sub')]
 if len(subs) == 0:
     print(f"Directory {dataset_path} has not sub-x directories containing data")
@@ -24,9 +27,31 @@ def get_mri(sub):
     else:
         mri_file = [f for f in files if f.endswith('_corrected.nii.gz')][0]
     return os.path.join(dataset_path,sub, 'anat', mri_file)
-print('one mri file' , get_mri(subs[0]))
+
+def get_mri_session(sub):
+    ## look for all the files of sessions
+    sessions = [f for f in os.listdir(os.path.join(dataset_path,sub)) if f.startswith('ses')]
+    session_paths = [os.path.join(dataset_path,sub, session, 'anat') for session in sessions]
+    mri_files = []
+    for session_path in session_paths:
+        files = os.listdir(session_path)
+        if brain_extraction:
+            mri_file = [f for f in files if f.endswith('_brain.nii.gz')][0]
+        else:
+            mri_file = [f for f in files if f.endswith('_corrected.nii.gz')][0]
+        mri_files.append(os.path.join(session_path, mri_file))
+
+    return mri_files
+
+if is_search_sessions:
+    files_input = []
+    for sub in subs:
+        files_input += get_mri_session(sub)
+else:
+    files_input = [get_mri(sub) for sub in subs]
+
+print('DEBUG: one file input', files_input[0])
 # make a list of inputs
-files_input = [get_mri(sub) for sub in subs]
 # make a list of outputs changing a suffix -corrected.nii.gz
 def make_output(f_input, sub,  suffix):
     var_path = os.path.dirname(f_input)
@@ -40,7 +65,6 @@ else:
 print('first file input,', files_input[0])
 print('first file corrected,', files_corrected[0])
 # open file and check orientation with the affine flag
-import nibabel as nib
 
 
 def check_orientation(sub, f):
@@ -139,8 +163,16 @@ def check_orientation(sub, f):
     return fixed_orientation
 
 # check orientation of inputs
+summary_table = {}
 for sub, f in zip(subs, files_input):
     if check_orientation(sub, f):
         print('Orientation of', f, 'was fixed')
+        summary_table[f'{os.path.basename(f)}'] = 'was ok'
     else:
         print('Orientation of', f, 'is correct')
+        summary_table[f'{os.path.basename(f)}'] = 'was fixed'
+print('Summary table')
+for k, v in summary_table.items():
+    print('__________________________________________________')
+    print(f"{k} | {v} |")
+print('__________________________________________________')

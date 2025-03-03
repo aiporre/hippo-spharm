@@ -13,10 +13,12 @@ parser.add_argument('dataset_path', type=str, help='dataset path')
 parser.add_argument('-p', '--processes', type=int, default=1, help='number of processes')
 parser.add_argument('-b', '--brain', action='store_true', help='use brain extraction, default is bias correction')
 parser.add_argument('-r', '--reoriented', action='store_true', help='use reoriented extraction, default is bias correction')
+parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions')
 args = parser.parse_args()
 dataset_path = args.dataset_path
 PROCESSES = max(1, multiprocessing.cpu_count()-3)
 processes = args.processes
+is_find_sessions = args.sessions
 if processes == -1:
     processes = PROCESSES
     print('Using PROCESSES =', processes, ' out of ', multiprocessing.cpu_count(), ' cores available')
@@ -53,10 +55,33 @@ def get_mri(sub):
     else:
         mri_file = [f for f in files if f.endswith('_corrected.nii.gz')][0]
     return os.path.join(dataset_path, sub, 'anat', mri_file)
-print('one mri file' , get_mri(subs[0]))
+
+def get_mri_session(sub):
+    ## look for all the files of sessions
+    sessions = [f for f in os.listdir(os.path.join(dataset_path,sub)) if f.startswith('ses')]
+    session_paths = [os.path.join(dataset_path,sub, session, 'anat') for session in sessions]
+    mri_files = []
+    for session_path in session_paths:
+        files = os.listdir(session_path)
+        if brain_extraction:
+            mri_file = [f for f in files if f.endswith('_brain.nii.gz')][0]
+        elif reoriented:
+            mri_file = [f for f in files if f.endswith('_reoriented.nii.gz')][0]
+        else:
+            mri_file = [f for f in files if f.endswith('_corrected.nii.gz')][0]
+        mri_files.append(os.path.join(session_path, mri_file))
+
+    return mri_files
 
 # make a list of inputs
-files_input = [get_mri(sub) for sub in subs]
+if is_find_sessions:
+    files_input = []
+    for sub in subs:
+        files_input += get_mri_session(sub)
+else:
+    files_input = [get_mri(sub) for sub in subs]
+
+print('one mri file' , files_input[0])
 
 
 # make a list of outputs changing a suffix -corrected.nii.gz
@@ -65,11 +90,23 @@ def make_output(f_input, sub,  suffix):
     print('subs', sub)
     var_path = os.path.join(var_path,  sub + '_' + suffix + '.nii.gz')
     return var_path
+
+
+def make_output_sessions(f_input, suffix):
+    var_path = os.path.dirname(f_input)
+    f_prefix = os.path.basename(f_input).rsplit('_', 1)[0]
+    var_path = os.path.join(var_path, f_prefix + f'_{suffix}.nii.gz')
+    return var_path
+
+
 # if brain_extraction:
 #     files_corrected = [make_output(f_in, sub, 'brain') for f_in, sub in zip(files_input, subs)]
 # else:
 #     files_corrected = [make_output(f_in, sub, 'corrected') for f_in, sub in zip(files_input, subs)]
-files_hipp = [make_output(f_in, sub, 'seg') for f_in, sub in zip(files_input, subs)]
+if is_find_sessions:
+    files_hipp = [make_output_sessions(f_in, 'seg') for f_in in files_input]
+else:
+    files_hipp = [make_output(f_in, sub, 'seg') for f_in, sub in zip(files_input, subs)]
 
 print('first file input,', files_input[0])
 # print('first file corrected,', files_corrected[0])

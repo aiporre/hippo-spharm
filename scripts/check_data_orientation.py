@@ -58,14 +58,25 @@ def make_output(f_input, sub,  suffix):
     print('subs', sub)
     var_path = os.path.join(var_path,  sub + '_' + suffix + '.nii.gz')
     return var_path
-if brain_extraction:
-    files_corrected = [make_output(f_in, sub, 'brain') for f_in, sub in zip(files_input, subs)]
+
+def make_output_sessions(f_input, suffix):
+    var_path = os.path.dirname(f_input)
+    f_prefix = os.path.basename(f_input).rsplit('_', 1)[0]
+    var_path = os.path.join(var_path, f_prefix + f'_{suffix}.nii.gz')
+    return var_path
+if is_search_sessions:
+    if brain_extraction:
+        files_corrected = [make_output_sessions(f_in, 'brain') for f_in in files_input]
+    else:
+        files_corrected = [make_output_sessions(f_in, 'corrected') for f_in, sub in zip(files_input, subs)]
 else:
-    files_corrected = [make_output(f_in, sub, 'corrected') for f_in, sub in zip(files_input, subs)]
+    if brain_extraction:
+        files_corrected = [make_output(f_in, sub, 'brain') for f_in, sub in zip(files_input, subs)]
+    else:
+        files_corrected = [make_output(f_in, sub, 'corrected') for f_in, sub in zip(files_input, subs)]
 print('first file input,', files_input[0])
 print('first file corrected,', files_corrected[0])
 # open file and check orientation with the affine flag
-
 
 def check_orientation(sub, f):
     img = nib.load(f)
@@ -155,7 +166,10 @@ def check_orientation(sub, f):
     img = nib.Nifti1Image(data, new_affine)
     print('img.header', img.header)
     # save the image
-    f_out = make_output(f, sub, 'reoriented')
+    if is_search_sessions:
+        f_out = make_output_sessions(f, 'reoriented')
+    else:
+        f_out = make_output(f, sub, 'reoriented')
     nib.save(img, f_out)
     x, y, z = nib.aff2axcodes(img.affine)
     print('new orientation', nib.aff2axcodes(img.affine))

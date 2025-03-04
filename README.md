@@ -10,4 +10,11 @@ spherical harmonics of hippocampus for feature extraction
 5. run fix mesh script 
 6. run feature extraction.
 
+## to fix mesh
+set a fix number of meshes, and fixes holes 
+
+```bash
+export REMESHBIN=/path/to/code/Manifold/build/manifold
+python scripts/fix_meshes /path/to/models
+```
  

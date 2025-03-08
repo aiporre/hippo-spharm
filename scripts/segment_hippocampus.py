@@ -118,6 +118,8 @@ commands = []
 for f_in, f_out in zip(files_input, files_hipp):
     if not os.path.exists(f_out):
         commands.append(['seg_hipp', '-t1', f_in, '-o', f_out])
+print(' we have ', len(commands), 'commands to run')
+print(' number of files was ', len(files_input))
 
 # run the commands
 

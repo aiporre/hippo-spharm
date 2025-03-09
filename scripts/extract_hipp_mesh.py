@@ -2,6 +2,9 @@
 # the features are computed in each hippocampus right and left.
 import argparse
 import os
+
+import pandas as pd
+
 from hippospharm.segmentation import BrainImage, Mesh
 import tqdm
 
@@ -10,7 +13,8 @@ import tqdm
 # Argument parser
 parser = argparse.ArgumentParser(description='Extract features from hippocampus images')
 parser.add_argument('datapath', nargs='?', default=os.environ.get('DATAPATH'), help='Path to the data directory or set the environment variable DATAPATH')
-parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions'),
+parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions')
+parser.add_argument('-o', '--overwrite', action='store_true', help='Overwrite models')
 
 args = parser.parse_args()
 datapath = args.datapath
@@ -63,34 +67,52 @@ if not os.path.exists(models_path):
     os.makedirs(models_path)
     print('Created models folder')
 else:
-    print('models folder already exists models will be overwritten')
+    if args.overwrite:
+        print('models folder already exists, models will be overwritten')
+    else:
+        print('models folder already exists, models will not be overwritten')
 
 
-
+failed_list = []
+reason = []
 for filename, mask_file, sub in tqdm.tqdm(zip(files_corrected, files_hipp, subs), desc='loading images', total=len(files_corrected)):
     print('---->> processing: ', filename)
-    brain_image = BrainImage(filename, mask_file=mask_file)
-    print('brain_image', filename)
-    print('mask fiel', mask_file)
-    # create the model name file in models folder with sub-XX_hip.obj
-    if is_find_sessions:
-        fname= os.path.basename(filename)
-        sub_session = fname.rsplit('_', 1)[0].replace("_", "-")
-        model_name_prefix = os.path.join(models_path, sub_session + '_hip')
-    else:
-        model_name_prefix = os.path.join(models_path, sub + '_hip')
-    spacing = brain_image.get_spacing()
-    # create a list of right hippocampus
-    right_hipp = brain_image.get_hippocampus('right')
-    # get features for each surface printing a progress bar with tqdm
-    N = 500 
-    V_r, F_r = right_hipp.get_isosurface(value=0.5, presample=1, show=False, method='marching_cubes', N=500, spacing=spacing, as_surface=False)
-    surface = Mesh(V_r, F_r)
-    surface.save(model_name_prefix + '_right.obj')
-    # create a list of left hippocampus
-    left_hipp = brain_image.get_hippocampus('left')
-    V_l, F_l = left_hipp.get_isosurface(value=0.5, presample=1, show=False, method='marching_cubes', N=500, spacing=spacing, as_surface=False)
-    surface = Mesh(V_l, F_l)
-    surface.save(model_name_prefix + '_left.obj')
+    try:
+        brain_image = BrainImage(filename, mask_file=mask_file)
+        print('brain_image', filename)
+        print('mask file', mask_file)
+        # create the model name file in models folder with sub-XX_hip.obj
+        if is_find_sessions:
+            fname= os.path.basename(filename)
+            sub_session = fname.rsplit('_', 1)[0].replace("_", "-")
+            model_name_prefix = os.path.join(models_path, sub_session + '_hip')
+        else:
+            model_name_prefix = os.path.join(models_path, sub + '_hip')
+        spacing = brain_image.get_spacing()
+        # create a list of right hippocampus
+        right_hipp = brain_image.get_hippocampus('right')
+        # get features for each surface printing a progress bar with tqdm
+        N = 500
+        V_r, F_r = right_hipp.get_isosurface(value=0.5, presample=1, show=False, method='marching_cubes', N=500, spacing=spacing, as_surface=False)
+        surface = Mesh(V_r, F_r)
+        if not os.path.exists(model_name_prefix + '_right.obj') or args.overwrite:
+            surface.save(model_name_prefix + '_right.obj')
+        # create a list of left hippocampus
+        left_hipp = brain_image.get_hippocampus('left')
+        V_l, F_l = left_hipp.get_isosurface(value=0.5, presample=1, show=False, method='marching_cubes', N=500, spacing=spacing, as_surface=False)
+        surface = Mesh(V_l, F_l)
+        # surface.save(model_name_prefix + '_left.obj')
+        if not os.path.exists(model_name_prefix + '_left.obj') or args.overwrite:
+            surface.save(model_name_prefix + '_left.obj')
+    except Exception as e:
+        print('Failed to process ', filename)
+        print(e)
+        failed_list.append(filename)
+        reason.append(str(e))
+print('Failed to process the following files:')
+df = pd.DataFrame({'filename': failed_list, 'reason': reason})
+# print the whole table
+pd.set_option('display.max_colwidth', None)
+print(df)
 
 

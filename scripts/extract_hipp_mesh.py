@@ -75,7 +75,8 @@ else:
 
 failed_list = []
 reason = []
-for filename, mask_file, sub in tqdm.tqdm(zip(files_corrected, files_hipp, subs), desc='loading images', total=len(files_corrected)):
+values = zip(files_corrected, files_hipp, subs) if not is_find_sessions else zip(files_corrected, files_hipp, [1]*len(files_corrected))
+for filename, mask_file, sub in tqdm.tqdm(values, desc='loading images', total=len(files_corrected)):
     print('---->> processing: ', filename)
     try:
         brain_image = BrainImage(filename, mask_file=mask_file)

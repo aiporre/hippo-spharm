@@ -30,9 +30,10 @@ def get_mri_session(sub, suffix):
         if len(mm) == 0:
             print(f'No {suffix} file found in {session_path}')
             mri_file = None
+            mri_files.append(mri_file)
         else:
             mri_file = mm[0]
-        mri_files.append(os.path.join(session_path, mri_file))
+            mri_files.append(os.path.join(session_path, mri_file))
     return mri_files
 
 def get_mri(sub, suffix):

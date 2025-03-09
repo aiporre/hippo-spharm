@@ -26,12 +26,18 @@ def get_mri_session(sub, suffix):
     mri_files = []
     for session_path in session_paths:
         files = os.listdir(session_path)
-        mri_file = [f for f in files if f.endswith(f'_{suffix}.nii.gz')][0]
+        mm = [f for f in files if f.endswith(f'_{suffix}.nii.gz')]
+        if len(mm) == 0:
+            print(f'No {suffix} file found in {session_path}')
+            mri_file = None
+        else:
+            mri_file = mm[0]
         mri_files.append(os.path.join(session_path, mri_file))
     return mri_files
 
 def get_mri(sub, suffix):
     files = os.listdir(os.path.join(datapath,sub,'anat'))
+    # TODO: if zero or more than one file is found, raise an exception
     mri_file = [f for f in files if f.endswith(f'_{suffix}.nii.gz')][0]
     return os.path.join(datapath, sub, 'anat', mri_file)
 
@@ -47,6 +53,9 @@ if is_find_sessions:
         files_corrected += get_mri_session(sub, suffix)
         suffix = 'seg'
         files_hipp += get_mri_session(sub, suffix)
+    # filter none values in pairs
+    ffs = [(f1, f2) for f1, f2 in zip(files_corrected, files_hipp) if f1 is not None and f2 is not None]
+    files_corrected, files_hipp = zip(*ffs)
 else:
     # TODO: use get_mri for dynamic file selection, now it is hardcoded to corrected and seg
     # find all corrected files

@@ -17,4 +17,15 @@ set a fix number of meshes, and fixes holes
 export REMESHBIN=/path/to/code/Manifold/build/manifold
 python scripts/fix_meshes /path/to/models
 ```
- 
+## installation of FSL
+
+```bash
+wget https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/7.4.1/freesurfer-linux-ubuntu20_amd64-7.4.1.tar.gz
+tar -xzvf freesurfer-linux-ubuntu20_amd64-7.4.1.tar.gz
+mv freesurfer $HOME/
+```
+copy this into your bashrc
+```bash
+export FREESURFER_HOME=$HOME/freesurfer
+source $FREESURFER_HOME/SetUpFreeSurfer.sh
+```

@@ -117,11 +117,11 @@ print('number of input files', len(files_input))
 print('number of output files', len(files_brain))
 
 # Function to execute command
-def _execute_command(command):
+def _execute_command(command, f_out=None):
     print('command', command)
     c = command.split(" ")
     start_time = time.time()
-    f_out = c[-1]
+    f_out = c[-1] if f_out is None else f_out
     if not os.path.exists(f_out):
         os.system(' '.join(c))
         print(f'file out generated {f_out}')
@@ -144,9 +144,9 @@ def map_nmi(f_in, f_out, f_ref):
     command_2 = f"mri_easyreg --ref {f_ref} --flo {f_in} --flo_seg {f_in_seg} --ref_seg {f_reg_seg}  --flo_reg {f_out}"
     # mri_synthseg --i brain.nii.gz --o brain_seg --parc --cpu
     print('make parcellation')
-    _execute_command(command_1)
+    _execute_command(command_1, segs_dir)
     print('register to MNI...')
-    _execute_command(command_2)
+    _execute_command(command_2, f_out)
 
     
 

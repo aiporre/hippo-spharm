@@ -112,8 +112,9 @@ for f_in, f_out in zip(files_input, files_brain):
             'block', f_block
             ])
         # delete the block
-for ccc in commands:
-    print(ccc)
+print('number of commands', len(commands))
+print('number of input files', len(files_input))
+print('number of output files', len(files_brain))
 
 # Function to execute command
 def _execute_command(command):

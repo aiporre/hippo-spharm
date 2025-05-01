@@ -81,7 +81,7 @@ if is_find_sessions:
     files_input = []
     for sub in subs:
         files_input += get_mri_session(sub)
-    files_brain = [make_output_sessions(f_in, sub) for f_in, sub in zip(files_input, subs)]
+    files_brain = [make_output_sessions(f_in) for f_in in files_input]
     print('one file input', files_input[0])
     print('one file output', files_brain[0])
 else:

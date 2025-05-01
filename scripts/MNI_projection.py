@@ -4,7 +4,7 @@ import multiprocessing
 import tqdm
 import time
 import argparse
-import ants
+
 
 # Argument parser
 parser = argparse.ArgumentParser(description='Brain extraction using BET')
@@ -92,6 +92,8 @@ else:
 
 # Make a list of commands for brain extraction
 commands = []
+#print('files_input', files_input)
+#print('files_brain', files_brain)
 for f_in, f_out in zip(files_input, files_brain):
     if not os.path.exists(f_out):
         # this is a command from FSL bet extraction
@@ -110,14 +112,42 @@ for f_in, f_out in zip(files_input, files_brain):
             'block', f_block
             ])
         # delete the block
+for ccc in commands:
+    print(ccc)
+
+# Function to execute command
+def _execute_command(command):
+    print('command', command)
+    c = command.split(" ")
+    start_time = time.time()
+    f_out = c[-1]
+    if not os.path.exists(f_out):
+        os.system(' '.join(c))
+        print(f'file out generated {f_out}')
+    else:
+        print(f"{f_out} exists, skipping")
+    print("--- %s seconds ---" % (time.time() - start_time))
 
 # Function to execute command
 def map_nmi(f_in, f_out, f_ref):
-    input_image = ants.image_read(f_in)
-    reference_image = ants.image_read(f_ref)
-    registration = ants.registration(fixed=input_image, moving=reference_image, type_of_transform='SyN')
+    # input_image = ants.image_read(f_in)
+    # reference_image = ants.image_read(f_ref)
+    # registration = ants.registration(fixed=input_image, moving=reference_image, type_of_transform='SyN')
     # write the output
-    ants.image_write(registration['warpedmovout'], f_out)
+    # ants.image_write(registration['warpedmovout'], f_out)
+    curr_dir = os.path.dirname(f_in)
+    segs_dir = os.path.join(curr_dir, "segments")
+    f_in_seg = os.path.join(segs_dir, os.path.basename(f_in).replace(".nii.gz", "_synthseg.nii.gz"))
+    f_reg_seg = f_ref.replace(".nii.gz","_synthseg.nii.gz")
+    command_1 = f"mri_synthseg --i {f_in} --o {segs_dir} --parc --cpu"
+    command_2 = f"mri_easyreg --ref {f_ref} --flo {f_in} --flo_seg {f_in_seg} --ref_seg {f_reg_seg}  --flo_reg {f_out}"
+    # mri_synthseg --i brain.nii.gz --o brain_seg --parc --cpu
+    print('make parcellation')
+    _execute_command(command_1)
+    print('register to MNI...')
+    _execute_command(command_2)
+
+    
 
 
 def execute_command(*c):
@@ -143,9 +173,9 @@ def execute_command(*c):
 
 # Run the commands
 if processes == 1:
-    for c in tqdm.tqdm(commands, desc='Brain extraction', total=len(commands)):
+    for c in tqdm.tqdm(commands, desc='MNI projection', total=len(commands)):
         execute_command(*c)
 else:
     with multiprocessing.Pool(processes=processes) as pool:
-        for _ in tqdm.tqdm(pool.imap_unordered(execute_command, commands), desc='Brain extraction', total=len(commands)):
+        for _ in tqdm.tqdm(pool.imap_unordered(execute_command, commands), desc='MNI projection', total=len(commands)):
             pass

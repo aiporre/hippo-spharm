@@ -71,7 +71,7 @@ def make_output(f_input, sub):
     var_path = os.path.join(var_path, sub + '_mni.nii.gz')
     return var_path
 # make out for sessions
-def make_output_sessions(f_input, sub):
+def make_output_sessions(f_input):
     var_path = os.path.dirname(f_input)
     f_prefix = os.path.basename(f_input).rsplit('_', 1)[0]
     var_path = os.path.join(var_path, f_prefix + '_mni.nii.gz')

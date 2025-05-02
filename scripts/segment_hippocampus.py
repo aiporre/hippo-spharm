@@ -55,7 +55,7 @@ def get_mri(sub):
         mri_file = [f for f in files if f.endswith('_reoriented.nii.gz')][0]
     elif target_type == 'corrected':
         mri_file = [f for f in files if f.endswith('_corrected.nii.gz')][0]
-    elif target_type == 'mmi':
+    elif target_type == 'mni':
         mri_file = [f for f in files if f.endswith('_mni.nii.gz')][0]
     else:
         raise Exception(f'Unknown target type: {target_type}')
@@ -74,7 +74,7 @@ def get_mri_session(sub):
             mri_file = [f for f in files if f.endswith('_reoriented.nii.gz')][0]
         elif target_type == 'corrected':
             mri_file = [f for f in files if f.endswith('_corrected.nii.gz')][0]
-        elif target_type == 'mmi':
+        elif target_type == 'mni':
             mri_file = [f for f in files if f.endswith('_mni.nii.gz')][0]
         else:
             raise Exception(f'Unknown target type: {target_type}')

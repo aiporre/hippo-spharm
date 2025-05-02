@@ -36,7 +36,7 @@ else:
     sys.exit(0)
 # try to use the environment variable $MNI_DIR
 # if not set, use the default path
-mni_templates_dir = os.environ.get('MNI_DIR', "data/mni_templates")
+mni_templates_dir = os.environ.get('MNI_TEMPLATES_DIR', "data/mni_templates")
 if not os.path.exists(mni_templates_dir):
     print("Error: Directory if temlates MNI is missing", mni_templates_dir, "is not a valid directory")
     sys.exit(0)
@@ -44,7 +44,7 @@ if on_brain:
     mni_reference = os.path.join(mni_templates_dir, "MNI152_T1_1mm_brain.nii.gz")
 else:
     mni_reference = os.path.join(mni_templates_dir, "MNI152_T1_1mm.nii.gz")
-
+print("MNI reference file", mni_reference)
 # Ensure the dataset path is a directory
 if not os.path.isdir(dataset_path):
     print("Error: Directory is missing", dataset_path, "is not a valid directory")
@@ -148,6 +148,7 @@ def map_nmi(f_in, f_out, f_ref):
     f_reg_seg = f_ref.replace(".nii.gz","_synthseg.nii.gz")
     command_1 = f"mri_synthseg --i {f_in} --o {segs_dir} --parc --cpu"
     command_2 = f"mri_easyreg --ref {f_ref} --flo {f_in} --flo_seg {f_in_seg} --ref_seg {f_reg_seg}  --flo_reg {f_out}"
+
     # mri_synthseg --i brain.nii.gz --o brain_seg --parc --cpu
     print('make parcellation')
     _execute_command(command_1, segs_dir)

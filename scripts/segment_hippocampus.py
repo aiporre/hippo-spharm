@@ -20,7 +20,7 @@ processes = args.processes
 is_find_sessions = args.sessions
 target_type = args.target
 # check if the target type is in the list
-if target_type not in ['brain', 'corrected', 'reoriented', 'mmi']:
+if target_type not in ['brain', 'corrected', 'reoriented', 'mni']:
     print('target_type is not in the list check the help command -h')
     print('exit 0')
     sys.exit(0)

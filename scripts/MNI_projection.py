@@ -34,7 +34,16 @@ else:
     print('target_name is not in the list check the help command -h')
     print('exit 0')
     sys.exit(0)
-
+# try to use the environment variable $MNI_DIR
+# if not set, use the default path
+mni_templates_dir = os.environ.get('MNI_DIR', "data/mni_templates")
+if not os.path.exists(mni_templates_dir):
+    print("Error: Directory if temlates MNI is missing", mni_templates_dir, "is not a valid directory")
+    sys.exit(0)
+if on_brain:
+    mni_reference = os.path.join(mni_templates_dir, "MNI152_T1_1mm_brain.nii.gz")
+else:
+    mni_reference = os.path.join(mni_templates_dir, "MNI152_T1_1mm.nii.gz")
 
 # Ensure the dataset path is a directory
 if not os.path.isdir(dataset_path):
@@ -99,10 +108,7 @@ for f_in, f_out in zip(files_input, files_brain):
         # this is a command from FSL bet extraction
         # create a block file
         # this is a command from FSL bet extraction
-        if on_brain:
-            mni_reference = "data/mni_templates/MNI152_T1_1mm_brain.nii.gz"
-        else:
-            mni_reference = "data/mni_templates/MNI152_T1_1mm.nii.gz"
+
         f_block = f_out.replace('_mni.nii.gz', '_mni.lock')
         commands.append([
             'command', 'mni',

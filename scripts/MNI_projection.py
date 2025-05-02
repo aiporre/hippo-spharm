@@ -10,7 +10,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Brain extraction using BET')
 parser.add_argument('dataset_path', type=str, help='Dataset path')
 parser.add_argument('-p', '--processes', type=int, default=1, help='Number of processes')
-parser.add_argument('-t', '--target', type=str, default="brain", help='target image to extact: bn, corrected, reoriented')
+parser.add_argument('-t', '--target', type=str, default="brain", help='target image to extact: brainn, corrected, reoriented')
 parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions')
 args = parser.parse_args()
 

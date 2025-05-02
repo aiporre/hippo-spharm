@@ -11,22 +11,23 @@ import argparse
 parser = argparse.ArgumentParser(description='hipp segmentation')
 parser.add_argument('dataset_path', type=str, help='dataset path')
 parser.add_argument('-p', '--processes', type=int, default=1, help='number of processes')
-parser.add_argument('-b', '--brain', action='store_true', help='use brain extraction, default is bias correction')
-parser.add_argument('-r', '--reoriented', action='store_true', help='use reoriented extraction, default is bias correction')
+parser.add_argument('-t', '--target', type=str, default="brain", help='target image to extact: brain, corrected, reoriented, mni')
 parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions')
 args = parser.parse_args()
 dataset_path = args.dataset_path
 PROCESSES = max(1, multiprocessing.cpu_count()-3)
 processes = args.processes
 is_find_sessions = args.sessions
+target_type = args.target
+# check if the target type is in the list
+if target_type not in ['brain', 'corrected', 'reoriented', 'mmi']:
+    print('target_type is not in the list check the help command -h')
+    print('exit 0')
+    sys.exit(0)
+
 if processes == -1:
     processes = PROCESSES
     print('Using PROCESSES =', processes, ' out of ', multiprocessing.cpu_count(), ' cores available')
-brain_extraction = args.brain
-reoriented = args.reoriented
-if brain_extraction and reoriented:
-    print('Error: brain and reoriented are mutually exclusive')
-    sys.exit(0)
 
 # assert last argument is a directory
 if not os.path.isdir(dataset_path):
@@ -48,12 +49,16 @@ if len(subs) == 0:
 # find the inputs as dict
 def get_mri(sub):
     files = os.listdir(os.path.join(dataset_path,sub,'anat'))
-    if brain_extraction:
+    if target_type == 'brain':
         mri_file = [f for f in files if f.endswith('_brain.nii.gz')][0]
-    elif reoriented:
+    elif target_type == 'reoriented':
         mri_file = [f for f in files if f.endswith('_reoriented.nii.gz')][0]
-    else:
+    elif target_type == 'corrected':
         mri_file = [f for f in files if f.endswith('_corrected.nii.gz')][0]
+    elif target_type == 'mmi':
+        mri_file = [f for f in files if f.endswith('_mni.nii.gz')][0]
+    else:
+        raise Exception(f'Unknown target type: {target_type}')
     return os.path.join(dataset_path, sub, 'anat', mri_file)
 
 def get_mri_session(sub):
@@ -63,12 +68,16 @@ def get_mri_session(sub):
     mri_files = []
     for session_path in session_paths:
         files = os.listdir(session_path)
-        if brain_extraction:
+        if target_type == 'brain':
             mri_file = [f for f in files if f.endswith('_brain.nii.gz')][0]
-        elif reoriented:
+        elif target_type == 'reoriented':
             mri_file = [f for f in files if f.endswith('_reoriented.nii.gz')][0]
-        else:
+        elif target_type == 'corrected':
             mri_file = [f for f in files if f.endswith('_corrected.nii.gz')][0]
+        elif target_type == 'mmi':
+            mri_file = [f for f in files if f.endswith('_mni.nii.gz')][0]
+        else:
+            raise Exception(f'Unknown target type: {target_type}')
         mri_files.append(os.path.join(session_path, mri_file))
 
     return mri_files

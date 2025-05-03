@@ -144,7 +144,7 @@ def execute_command(*c):
         with lock:
             main(c)
         print(f'file out generated {f_out}')
-    elif os.path.exists(f_lock)
+    elif os.path.exists(f_lock):
         print(f"{f_lock} is blocking the process. skipping")
     else:
         print(f"{f_out} exists, skipping")
@@ -162,7 +162,7 @@ def execute_command_multiprocessing(*c):
         with lock:
             main(c)
         print(f'file out generated {f_out}')
-    elif os.path.exists(f_lock)
+    elif os.path.exists(f_lock):
         print(f"{f_lock} is blocking the process. skipping")
     else:
         print(f"{f_out} exists, skipping")

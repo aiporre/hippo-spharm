@@ -5,7 +5,7 @@ import tqdm
 import time
 from hippmapper.cli import main
 import argparse
-
+from filelock import FileLock
 
 # arg
 parser = argparse.ArgumentParser(description='hipp segmentation')
@@ -14,6 +14,7 @@ parser.add_argument('-p', '--processes', type=int, default=1, help='number of pr
 parser.add_argument('-t', '--target', type=str, default="brain", help='target image to extact: brain, corrected, reoriented, mni')
 parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions')
 args = parser.parse_args()
+
 dataset_path = args.dataset_path
 PROCESSES = max(1, multiprocessing.cpu_count()-3)
 processes = args.processes
@@ -137,9 +138,14 @@ def execute_command(*c):
     c = list(c)
     start_time = time.time()
     f_out = c[-1]
-    if not os.path.exists(f_out):
-        main(c)
+    f_lock = f_out.replace(".nii.gz", ".lock")
+    if not os.path.exists(f_out) and not os.path.exists(f_lock):
+        lock = FileLock(f_lock)
+        with lock:
+            main(c)
         print(f'file out generated {f_out}')
+    elif os.path.exists(f_lock)
+        print(f"{f_lock} is blocking the process. skipping")
     else:
         print(f"{f_out} exists, skipping")
 
@@ -150,8 +156,16 @@ def execute_command_multiprocessing(*c):
     c = list(c[0])
     start_time = time.time()
     f_out = c[-1]
-    if not os.path.exists(f_out):
-        main(c)
+    f_lock = f_out.replace(".nii.gz", ".lock")
+    if not os.path.exists(f_out) and not os.path.exists(f_lock):
+        lock = FileLock(f_lock)
+        with lock:
+            main(c)
+        print(f'file out generated {f_out}')
+    elif os.path.exists(f_lock)
+        print(f"{f_lock} is blocking the process. skipping")
+    else:
+        print(f"{f_out} exists, skipping")
     print(f'file out generated {f_out}')
     print("--- %s seconds ---" % (time.time() - start_time))
 

@@ -3,6 +3,7 @@ import SimpleITK as sitk
 from matplotlib import pyplot as plt
 import plotly.graph_objects as go
 from scipy.interpolate import RegularGridInterpolator
+from scipy.ndimage import gaussian_filter
 from skimage import measure
 from skimage.segmentation import find_boundaries
 
@@ -13,7 +14,7 @@ def resample_volume(presample, volume):
     N_v, M_v, P_v = volume.shape
     # create a regular grid interpolator
     interpolator = RegularGridInterpolator((np.arange(N_v), np.arange(M_v), np.arange(P_v)), volume,
-                                           method='nearest', bounds_error=False, fill_value=0)
+                                           method='cubic', bounds_error=False, fill_value=0)
     # create a new grid with presample points
     step_n, step_m, step_p = N_v * presample, M_v * presample, P_v * presample
     # round steps
@@ -151,7 +152,7 @@ class Image:
             plt.show()
 
     def get_isosurface(self, value=0.5, show=False, method='marching_cubes', spacing=(1, 1, 1), N=None, presample=None,
-                       crop=True):
+                       crop=True, as_surface=True):
         assert method in ['marching_cubes', 'boundary'], 'method must be marching_cubes or boundary'
         volume = self.image
         # crop around the volume
@@ -175,12 +176,15 @@ class Image:
 
         # Generate a random 3D numpy array representing a volumek
         if method == 'marching_cubes':
-            assert len(np.unique(volume)) == 2, 'image must be binary'
+            # assert len(np.unique(volume)) == 2, 'image must be binary'
+            volume = gaussian_filter(volume.astype(float), sigma=1.0)
+            # make a 10 voxel border
+            volume = np.pad(volume, 10, mode='constant', constant_values=0)
             # Set the isovalue for the isosurface
             iso_value = value
 
             # Get the vertices and faces of the isosurface using marching cubes
-            vertices, faces, _, _ = measure.marching_cubes(volume, iso_value, spacing=spacing)
+            vertices, faces, _, _ = measure.marching_cubes(volume, iso_value, spacing=spacing, allow_degenerate=False )
             # put vertices in N x 3 array
             data = np.array(vertices)
             # creates a plotly figure
@@ -224,16 +228,60 @@ class Image:
                 ax = fig.add_subplot(111, projection='3d')
                 ax.scatter(vertices[0], vertices[1], vertices[2])
                 plt.show()
+            faces = None
+            # TODO: make voronoi tesselation to get faces
+            if not as_surface:
+                print('Warning: boundaty has no faces they must be generated afterwards.')
 
         # creates instance of surface with data
         if N is None:
             N = data.shape[0]
             print('Waring: N is None, setting N to ', N)
-        surface = Surface(data=data, N=N, spacing=
-                          spacing)
-        return surface
 
+        if as_surface:
+            surface = Surface(data=data, N=N, spacing=
+                              spacing)
+            return surface
+        else:
+            return (vertices, faces)
 
+    def save(self, filename):
+        # save file into an obj file
+        if filename.endswith('.raw'):
+            print('image shape: ', self.image.shape)
+            #data = np.random.rand(100,100,100).astype("float32")
+            data = self.image.astype("float32")
+            data.tofile(filename)
+        else:
+            raise ValueError('filename must end with .raw')
+
+class Mesh:
+    def __init__(self, V,F):
+        self.V = V
+        self.F = F
+
+    def plot(self, show=False, ax=None):
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(111, projection='3d')
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_trisurf(self.V[:, 0], self.V[:, 1], self.V[:, 2], triangles=self.F, cmap='viridis', edgecolor='none')
+        ax.set_title('Mesh Plot')
+        if show:
+            plt.show()
+
+    def save(self, filename):
+        # save file into an obj file
+        assert np.max(self.F) < len(self.V), 'number of vertices is less than the maximum index in the faces'
+        with open(filename, 'w') as filehandler:
+            for v in self.V:
+                filehandler.write(f'v {v[0]} {v[1]} {v[2]}\n')
+            for f in self.F:
+                filehandler.write(f'f {f[0]+1} {f[1]+1} {f[2]+1}\n')
+
+        # validate the number of vertices is the maximum index in the faces
+        print('file saved as ', filename)
 
 
 class BrainImage(Image):

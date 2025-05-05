@@ -5,6 +5,8 @@ import tqdm
 import time
 import argparse
 
+from filelock import FileLock
+
 # Argument parser
 parser = argparse.ArgumentParser(description='Brain extraction using BET')
 parser.add_argument('dataset_path', type=str, help='Dataset path')
@@ -96,9 +98,26 @@ def execute_command(*c):
     print('command', c)
     c = list(c)
     start_time = time.time()
-    f_out = c[-1]
+    command_name = c[0]
+    if command_name == 'robustfov':
+        f_out = c[-1]
+    elif command_name == 'bet' or command_name == 'hd-bet':
+        f_out = c[2]
+    else:
+        raise Exception('Unknown command')
+    f_lock = f_out + '.lock'
     if not os.path.exists(f_out):
-        os.system(' '.join(c))
+        with FileLock(f_lock):
+            # check if the file exists
+            if os.path.exists(f_out):
+                print('output file already exists', f_out)
+                return
+            elif os.path.exists(f_lock):
+                print('lock file exists', f_lock)
+                return
+            # run the command
+            print('running command', c)
+            os.system(' '.join(c))
         print(f'file out generated {f_out}')
     else:
         print(f"{f_out} exists, skipping")

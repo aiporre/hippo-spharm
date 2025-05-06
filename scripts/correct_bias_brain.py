@@ -102,15 +102,15 @@ for c in tqdm.tqdm(commands, desc='bias correction', total=len(commands)):
     f_out = c[-1]
     f_lock = f_out + '.lock'
     # create a lock file
-    with FileLock(f_lock):
-        # check if the file exists
-        if not os.path.exists(f_out) and not os.path.exists(f_lock):
-            # run the command
-            print('running command', c)
+    # check if the file exists
+    if not os.path.exists(f_out) and not os.path.exists(f_lock):
+        # run the command
+        print('running command', c)
+        with FileLock(f_lock):
             main(c)
-        elif os.path.exists(f_out):
-            print('output file already exists', f_out)
-        elif os.path.exists(f_lock):
-            print('lock file exists', f_lock)
+    elif os.path.exists(f_out):
+        print('output file already exists', f_out)
+    elif os.path.exists(f_lock):
+        print('lock file exists', f_lock)
 
 print('You might want to extract the brain using a FLS tool, e.g. FSL BET')

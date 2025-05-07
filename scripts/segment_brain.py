@@ -106,19 +106,14 @@ def execute_command(*c):
     else:
         raise Exception('Unknown command')
     f_lock = f_out + '.lock'
-    if not os.path.exists(f_out):
+    if not os.path.exists(f_out) or not os.path.exists(f_lock):
+        # run the command
         with FileLock(f_lock):
-            # check if the file exists
-            if os.path.exists(f_out):
-                print('output file already exists', f_out)
-                return
-            elif os.path.exists(f_lock):
-                print('lock file exists', f_lock)
-                return
-            # run the command
             print('running command', c)
             os.system(' '.join(c))
         print(f'file out generated {f_out}')
+    if os.path.exists(f_lock):
+        print('lock file exists', f_lock)
     else:
         print(f"{f_out} exists, skipping")
     print("--- %s seconds ---" % (time.time() - start_time))

@@ -92,6 +92,10 @@ for f_in, f_out in zip(files_input, files_brain):
             commands.append(['bet', f_crop, f_out, '-R', '-m', '-f', '0.3'])
         else:
             commands.append(['hd-bet', f_crop, f_out, '-R', '-m', '-f', '0.3'])
+# stats in the commands and files
+print('Number of commands', len(commands))
+print('Number of files', len(files_brain))
+print('Number of files input', len(files_input))
 
 # Function to execute command
 def execute_command(*c):

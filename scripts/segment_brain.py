@@ -125,7 +125,7 @@ def execute_command(*c):
             print('running command', c)
             os.system(' '.join(c))
         print(f'file out generated {f_out}')
-    if os.path.exists(f_lock):
+    elif os.path.exists(f_lock):
         print('lock file exists', f_lock)
     else:
         print(f"{f_out} exists, skipping")

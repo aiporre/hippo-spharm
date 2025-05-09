@@ -70,7 +70,11 @@ def get_mri_session(sub):
     mri_files = []
     for session_path in session_paths:
         files = os.listdir(session_path)
-        mri_file = [f for f in files if f.endswith(target_ending)][0]
+        mri_list = [f for f in files if f.endswith(target_ending)]
+        if len(mri_list) == 0:
+            print(f'No {target_ending} file found in {session_path}')
+            continue
+        mri_file = mri_list[0]
         mri_files.append(os.path.join(session_path, mri_file))
     return mri_files
 

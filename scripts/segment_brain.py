@@ -104,7 +104,8 @@ for f_in, f_out in zip(files_input, files_brain):
 print('Number of commands', len(commands))
 print('Number of files', len(files_brain))
 print('Number of files input', len(files_input))
-print('Number of subs', len(subs))
+print('number of subjects', len(subs))
+
 # Function to execute command
 def execute_command(*c):
     print('command', c)

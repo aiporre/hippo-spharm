@@ -6,6 +6,7 @@ import time
 from hippmapper.cli import main
 import argparse
 from filelock import FileLock
+from random import shuffle
 
 # arg
 parser = argparse.ArgumentParser(description='hipp segmentation')
@@ -70,15 +71,18 @@ def get_mri_session(sub):
     for session_path in session_paths:
         files = os.listdir(session_path)
         if target_type == 'brain':
-            mri_file = [f for f in files if f.endswith('_brain.nii.gz')][0]
+            mri_file = [f for f in files if f.endswith('_brain.nii.gz')]
         elif target_type == 'reoriented':
-            mri_file = [f for f in files if f.endswith('_reoriented.nii.gz')][0]
+            mri_file = [f for f in files if f.endswith('_reoriented.nii.gz')]
         elif target_type == 'corrected':
-            mri_file = [f for f in files if f.endswith('_corrected.nii.gz')][0]
+            mri_file = [f for f in files if f.endswith('_corrected.nii.gz')]
         elif target_type == 'mni':
-            mri_file = [f for f in files if f.endswith('_mni.nii.gz')][0]
+            mri_file = [f for f in files if f.endswith('_mni.nii.gz')]
         else:
             raise Exception(f'Unknown target type: {target_type}')
+        if len(mri_file) == 0:
+            continue
+        mri_file = mri_file[0]
         mri_files.append(os.path.join(session_path, mri_file))
 
     return mri_files
@@ -114,9 +118,9 @@ def make_output_sessions(f_input, suffix):
 # else:
 #     files_corrected = [make_output(f_in, sub, 'corrected') for f_in, sub in zip(files_input, subs)]
 if is_find_sessions:
-    files_hipp = [make_output_sessions(f_in, 'seg') for f_in in files_input]
+    files_hipp = [make_output_sessions(f_in, f'{target_type}_seg') for f_in in files_input]
 else:
-    files_hipp = [make_output(f_in, sub, 'seg') for f_in, sub in zip(files_input, subs)]
+    files_hipp = [make_output(f_in, sub, f'{target_type}_seg') for f_in, sub in zip(files_input, subs)]
 
 print('first file input,', files_input[0])
 # print('first file corrected,', files_corrected[0])
@@ -130,7 +134,9 @@ for f_in, f_out in zip(files_input, files_hipp):
         commands.append(['seg_hipp', '-t1', f_in, '-o', f_out])
 print(' we have ', len(commands), 'commands to run')
 print(' number of files was ', len(files_input))
-
+print('shuffle commands')
+shuffle(commands)
+print('ready...goo....')
 # run the commands
 
 def execute_command(*c):

@@ -138,18 +138,21 @@ print('shuffle commands')
 shuffle(commands)
 print('ready...goo....')
 # run the commands
+import time
 
 def execute_command(*c):
     print('command', c)
-    c = list(c)
+    #c = list(c)
     start_time = time.time()
     f_out = c[-1]
     f_lock = f_out.replace(".nii.gz", ".lock")
     if not os.path.exists(f_out) and not os.path.exists(f_lock):
-        lock = FileLock(f_lock)
-        with lock:
+        with open(f_lock, 'w+') as f:
+            f.write('')
             main(c)
         print(f'file out generated {f_out}')
+        os.remove(f_lock)
+        assert not os.path.exists(f_lock), f"{f_lock} still there "
     elif os.path.exists(f_lock):
         print(f"{f_lock} is blocking the process. skipping")
     else:
@@ -164,10 +167,12 @@ def execute_command_multiprocessing(*c):
     f_out = c[-1]
     f_lock = f_out.replace(".nii.gz", ".lock")
     if not os.path.exists(f_out) and not os.path.exists(f_lock):
-        lock = FileLock(f_lock)
-        with lock:
+        with open(f_lock, 'w+') as f:
+            f.write('')
             main(c)
         print(f'file out generated {f_out}')
+        os.remove(f_lock)
+        assert not os.path.exists(f_lock), f"{f_lock} still there "
     elif os.path.exists(f_lock):
         print(f"{f_lock} is blocking the process. skipping")
     else:
@@ -184,7 +189,7 @@ if processes == 1:
         start_time = time.time()
         # main(c)
         # Create a multiprocessing Process object for my_function
-        # execute_command(c)
+        #execute_command(c)
         p = multiprocessing.Process(target=execute_command, args=(c))
 
         # Start the process

@@ -8,7 +8,6 @@ import pandas as pd
 from hippospharm.segmentation import BrainImage, Mesh
 import tqdm
 
-from scripts.correct_bias_brain import f_lock
 
 # get argument datapath from sys.argv
 

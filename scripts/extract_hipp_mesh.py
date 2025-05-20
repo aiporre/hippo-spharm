@@ -8,6 +8,8 @@ import pandas as pd
 from hippospharm.segmentation import BrainImage, Mesh
 import tqdm
 
+from scripts.correct_bias_brain import f_lock
+
 # get argument datapath from sys.argv
 
 # Argument parser
@@ -119,6 +121,14 @@ if not args.overwrite:
 
 for filename, mask_file, sub in tqdm.tqdm(values, desc='loading images', total=len(files_corrected)):
     print('---->> processing: ', filename)
+    # check if lock file exists
+    f_lock = filename.replace(".nii.gz", ".meshlock")
+    if os.path.exists(f_lock):
+        print('lock file exists, skipping', f_lock)
+        continue
+    # then create a lock file
+    with open(f_lock, 'w+') as f:
+        f.write('lock file')
     try:
         print('brain_image', filename)
         print('mask file', mask_file)
@@ -153,6 +163,12 @@ for filename, mask_file, sub in tqdm.tqdm(values, desc='loading images', total=l
         print(e)
         failed_list.append(filename)
         reason.append(str(e))
+    # remove the lock file
+    if os.path.exists(f_lock):
+        os.remove(f_lock)
+        assert not os.path.exists(f_lock), f"{f_lock} still there "
+    else:
+        print('warining: lock file not found but program finsihed fine', f_lock)
 print('Failed to process the following files:')
 df = pd.DataFrame({'filename': failed_list, 'reason': reason})
 # print the whole table

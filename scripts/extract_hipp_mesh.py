@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(description='Extract features from hippocampus 
 parser.add_argument('datapath', nargs='?', default=os.environ.get('DATAPATH'), help='Path to the data directory or set the environment variable DATAPATH')
 parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions')
 parser.add_argument('-o', '--overwrite', action='store_true', help='Overwrite models')
-parser.add_argument('-t', '-target', type=str, help='target image to extact: brain, corrected, reoriented, mni')
+parser.add_argument('-t', '--target', type=str, help='target image to extact: brain, corrected, reoriented, mni')
 
 args = parser.parse_args()
 datapath = args.datapath

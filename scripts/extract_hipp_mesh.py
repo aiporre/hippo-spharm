@@ -15,10 +15,13 @@ parser = argparse.ArgumentParser(description='Extract features from hippocampus 
 parser.add_argument('datapath', nargs='?', default=os.environ.get('DATAPATH'), help='Path to the data directory or set the environment variable DATAPATH')
 parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions')
 parser.add_argument('-o', '--overwrite', action='store_true', help='Overwrite models')
+parser.add_argument('-t', '-target', type=str, help='target image to extact: brain, corrected, reoriented, mni')
 
 args = parser.parse_args()
 datapath = args.datapath
 is_find_sessions = args.sessions
+target = args.target
+
 def get_mri_session(sub, suffix):
     ## look for all the files of sessions
     sessions = [f for f in os.listdir(os.path.join(datapath,sub)) if f.startswith('ses')]
@@ -50,19 +53,25 @@ if is_find_sessions:
     files_corrected = []
     files_hipp = []
     for sub in subs:
-        suffix = 'corrected'
+        suffix = target
         files_corrected += get_mri_session(sub, suffix)
-        suffix = 'seg'
+        if target == 'brain':
+            suffix = 'seg'
+        else:
+            suffix = f'{target}_seg'
         files_hipp += get_mri_session(sub, suffix)
     # filter none values in pairs
     ffs = [(f1, f2) for f1, f2 in zip(files_corrected, files_hipp) if f1 is not None and f2 is not None]
     files_corrected, files_hipp = zip(*ffs)
 else:
     # TODO: use get_mri for dynamic file selection, now it is hardcoded to corrected and seg
+    # Use get_mri for dynamic file selection
     # find all corrected files
-    files_corrected = [os.path.join(datapath, sub, 'anat', f) for sub in subs for f in os.listdir(os.path.join(datapath, sub, 'anat')) if f.endswith('corrected.nii.gz')]
+    suffix = target
+    files_corrected = [get_mri(sub, target) for sub in subs]
     # find all segmentation files
-    files_hipp = [os.path.join(datapath, sub, 'anat', f) for sub in subs for f in os.listdir(os.path.join(datapath, sub, 'anat')) if f.endswith('seg.nii.gz')]
+    suffix = f"{target}_seg"
+    files_hipp = [get_mri(sub, f"{target}_seg") for sub in subs]
 print('Found ', len(files_hipp), ' hippocampus segmentation files')
 for i, f in enumerate(files_hipp):
     print(f'{i} : {f}')

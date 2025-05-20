@@ -23,6 +23,8 @@ datapath = args.datapath
 is_find_sessions = args.sessions
 target = args.target
 
+print('program started:', args)
+
 def get_mri_session(sub, suffix):
     ## look for all the files of sessions
     sessions = [f for f in os.listdir(os.path.join(datapath,sub)) if f.startswith('ses')]
@@ -74,8 +76,8 @@ else:
     suffix = f"{target}_seg"
     files_hipp = [get_mri(sub, f"{target}_seg") for sub in subs]
 print('Found ', len(files_hipp), ' hippocampus segmentation files')
-for i, f in enumerate(files_hipp):
-    print(f'{i} : {f}')
+#for i, f in enumerate(files_hipp):
+#    print(f'{i} : {f}')
 print('--------------------')
 print('processing....')
 # create a list of BrainImages
@@ -99,8 +101,10 @@ values = zip(files_corrected, files_hipp, subs) if not is_find_sessions else zip
 # filter files that have already been processed
 if not args.overwrite:
     values_filtered = []
+    cnt = 0
     for filename, mask_file, sub in values:
         # create the model name file in models folder with sub-XX_hip.obj
+        cnt = cnt + 1
         if is_find_sessions:
             fname= os.path.basename(filename)
             sub_session = fname.rsplit('_', 1)[0].replace("_", "-")
@@ -109,11 +113,10 @@ if not args.overwrite:
             model_name_prefix = os.path.join(models_path, sub + '_hip')
         # are both output there
         if os.path.exists(model_name_prefix + '_right.obj') and os.path.exists(model_name_prefix + '_left.obj'):
-            print('Both files already exist, skipping')
             continue
         # add the file to the list
         values_filtered.append((filename, mask_file, sub))
-    print('reduced files to process from', len(values), 'to', len(values_filtered))
+    print('reduced files to process from', cnt, 'to', len(values_filtered))
     values = values_filtered
 
 

@@ -4,6 +4,7 @@ import multiprocessing
 import tqdm
 import time
 import argparse
+from random import shuffle
 
 
 # Argument parser
@@ -70,7 +71,11 @@ def get_mri_session(sub):
     mri_files = []
     for session_path in session_paths:
         files = os.listdir(session_path)
-        mri_file = [f for f in files if f.endswith(target_ending)][0]
+        mri_list = [f for f in files if f.endswith(target_ending)]
+        if len(mri_list) == 0:
+            print(f'No {target_ending} file found in {session_path}')
+            continue
+        mri_file = mri_list[0]
         mri_files.append(os.path.join(session_path, mri_file))
     return mri_files
 
@@ -121,10 +126,13 @@ for f_in, f_out in zip(files_input, files_brain):
 print('number of commands', len(commands))
 print('number of input files', len(files_input))
 print('number of output files', len(files_brain))
+shuffle(commands)
+
+print(commands)
 
 # Function to execute command
 def _execute_command(command, f_out=None):
-    print('command', command)
+    print('small command', command)
     c = command.split(" ")
     start_time = time.time()
     f_out = c[-1] if f_out is None else f_out
@@ -133,7 +141,7 @@ def _execute_command(command, f_out=None):
         print(f'file out generated {f_out}')
     else:
         print(f"{f_out} exists, skipping")
-    print("--- %s seconds ---" % (time.time() - start_time))
+    print("--- small command %s seconds ---" % (time.time() - start_time))
 
 # Function to execute command
 def map_nmi(f_in, f_out, f_ref):
@@ -146,8 +154,9 @@ def map_nmi(f_in, f_out, f_ref):
     segs_dir = os.path.join(curr_dir, "segments")
     f_in_seg = os.path.join(segs_dir, os.path.basename(f_in).replace(".nii.gz", "_synthseg.nii.gz"))
     f_reg_seg = f_ref.replace(".nii.gz","_synthseg.nii.gz")
-    command_1 = f"mri_synthseg --i {f_in} --o {segs_dir} --parc --cpu"
-    command_2 = f"mri_easyreg --ref {f_ref} --flo {f_in} --flo_seg {f_in_seg} --ref_seg {f_reg_seg}  --flo_reg {f_out}"
+    #command_1 = f"mri_synthseg --i {f_in} --o {segs_dir} --parc --cpu"
+    command_1 = f"mri_synthseg --i {f_in} --o {segs_dir} --parc"
+    command_2 = f"mri_easyreg --ref {f_ref} --flo {f_in} --flo_seg {f_in_seg} --ref_seg {f_reg_seg}  --flo_reg {f_out} --threads -1"
 
     # mri_synthseg --i brain.nii.gz --o brain_seg --parc --cpu
     print('make parcellation')
@@ -177,7 +186,7 @@ def execute_command(*c):
         os.remove(f_block)
     else:
         print(f"{f_out} exists, skipping")
-    print("--- %s seconds ---" % (time.time() - start_time))
+    print("--- SEG+MNI-REGISTRATION = %s seconds ---" % (time.time() - start_time))
 
 # Run the commands
 if processes == 1:

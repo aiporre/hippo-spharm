@@ -1,6 +1,7 @@
 import os
 import sys
 import multiprocessing
+import subprocess
 import tqdm
 import time
 import argparse
@@ -14,6 +15,7 @@ parser.add_argument('-p', '--processes', type=int, default=1, help='Number of pr
 parser.add_argument('-r', '--reoriented', action='store_true', help='use reoriented extraction, default is bias correction')
 parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions')
 parser.add_argument('-t', '--tool', type=str, default='bet', help='Tool to use for brain extraction. default is bet (FSL)', choices=['bet', 'hd-bet'])
+parser.add_argument('-c', '--crop', action='store_true', help='Do only crop,')
 args = parser.parse_args()
 
 dataset_path = args.dataset_path
@@ -21,6 +23,7 @@ processes = args.processes
 is_reoriented = args.reoriented
 is_find_sessions = args.sessions
 bet_tool = args.tool
+only_crop = args.crop
 
 
 # Ensure the dataset path is a directory
@@ -62,7 +65,7 @@ def make_output(f_input, sub):
     var_path = os.path.join(var_path, sub + '_brain.nii.gz')
     return var_path
 # make out for sessions
-def make_output_sessions(f_input, sub):
+def make_output_sessions(f_input):
     var_path = os.path.dirname(f_input)
     f_prefix = os.path.basename(f_input).rsplit('_', 1)[0]
     var_path = os.path.join(var_path, f_prefix + '_brain.nii.gz')
@@ -72,7 +75,7 @@ if is_find_sessions:
     files_input = []
     for sub in subs:
         files_input += get_mri_session(sub)
-    files_brain = [make_output_sessions(f_in, sub) for f_in, sub in zip(files_input, subs)]
+    files_brain = [make_output_sessions(f_in) for f_in in files_input]
     print('one file input', files_input[0])
     print('one file output', files_brain[0])
 else:
@@ -87,15 +90,21 @@ for f_in, f_out in zip(files_input, files_brain):
     if not os.path.exists(f_out):
         # this is a command from FSL bet extraction
         f_crop = f_out.replace('_brain.nii.gz', '_crop.nii.gz')
-        commands.append(['robustfov','-i', f_in, '-r', f_crop])
-        if bet_tool == 'bet':
-            commands.append(['bet', f_crop, f_out, '-R', '-m', '-f', '0.3'])
+        if not os.path.exists(f_crop):
+            commands.append(['robustfov','-i', f_in, '-r', f_crop])
+        if only_crop:
+            pass
         else:
-            commands.append(['hd-bet', f_crop, f_out, '-R', '-m', '-f', '0.3'])
+            if not os.path.exists(f_out):
+                if bet_tool == 'bet':
+                    commands.append(['bet', f_crop, f_out, '-R', '-m', '-f', '0.3'])
+                else:
+                    commands.append(['hd-bet', f_crop, f_out, '-R', '-m', '-f', '0.3'])
 # stats in the commands and files
 print('Number of commands', len(commands))
 print('Number of files', len(files_brain))
 print('Number of files input', len(files_input))
+print('number of subjects', len(subs))
 
 # Function to execute command
 def execute_command(*c):
@@ -110,13 +119,13 @@ def execute_command(*c):
     else:
         raise Exception('Unknown command')
     f_lock = f_out + '.lock'
-    if not os.path.exists(f_out) or not os.path.exists(f_lock):
+    if not os.path.exists(f_out) and not os.path.exists(f_lock):
         # run the command
         with FileLock(f_lock):
             print('running command', c)
             os.system(' '.join(c))
         print(f'file out generated {f_out}')
-    if os.path.exists(f_lock):
+    elif os.path.exists(f_lock):
         print('lock file exists', f_lock)
     else:
         print(f"{f_out} exists, skipping")

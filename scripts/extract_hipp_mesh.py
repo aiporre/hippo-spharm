@@ -95,10 +95,31 @@ else:
 failed_list = []
 reason = []
 values = zip(files_corrected, files_hipp, subs) if not is_find_sessions else zip(files_corrected, files_hipp, [1]*len(files_corrected))
+# filter files that have already been processed
+if not args.overwrite:
+    values_filtered = []
+    for filename, mask_file, sub in values:
+        # create the model name file in models folder with sub-XX_hip.obj
+        if is_find_sessions:
+            fname= os.path.basename(filename)
+            sub_session = fname.rsplit('_', 1)[0].replace("_", "-")
+            model_name_prefix = os.path.join(models_path, sub_session + '_hip')
+        else:
+            model_name_prefix = os.path.join(models_path, sub + '_hip')
+        # are both output there
+        if os.path.exists(model_name_prefix + '_right.obj') and os.path.exists(model_name_prefix + '_left.obj'):
+            print('Both files already exist, skipping')
+            continue
+        # add the file to the list
+        values_filtered.append((filename, mask_file, sub))
+    print('reduced files to process from', len(values), 'to', len(values_filtered))
+    values = values_filtered
+
+
+
 for filename, mask_file, sub in tqdm.tqdm(values, desc='loading images', total=len(files_corrected)):
     print('---->> processing: ', filename)
     try:
-        brain_image = BrainImage(filename, mask_file=mask_file)
         print('brain_image', filename)
         print('mask file', mask_file)
         # create the model name file in models folder with sub-XX_hip.obj
@@ -108,6 +129,9 @@ for filename, mask_file, sub in tqdm.tqdm(values, desc='loading images', total=l
             model_name_prefix = os.path.join(models_path, sub_session + '_hip')
         else:
             model_name_prefix = os.path.join(models_path, sub + '_hip')
+        # EXTRACT THE HIPPOCAMPUS as mesh
+        # create a BrainImage object
+        brain_image = BrainImage(filename, mask_file=mask_file)
         spacing = brain_image.get_spacing()
         # create a list of right hippocampus
         right_hipp = brain_image.get_hippocampus('right')

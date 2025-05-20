@@ -117,10 +117,14 @@ def make_output_sessions(f_input, suffix):
 #     files_corrected = [make_output(f_in, sub, 'brain') for f_in, sub in zip(files_input, subs)]
 # else:
 #     files_corrected = [make_output(f_in, sub, 'corrected') for f_in, sub in zip(files_input, subs)]
-if is_find_sessions:
-    files_hipp = [make_output_sessions(f_in, f'{target_type}_seg') for f_in in files_input]
+if target_type == 'brain':
+    out_suffix = 'seg'
 else:
-    files_hipp = [make_output(f_in, sub, f'{target_type}_seg') for f_in, sub in zip(files_input, subs)]
+    out_suffix = f'{target_type}_seg'
+if is_find_sessions:
+    files_hipp = [make_output_sessions(f_in, out_suffix) for f_in in files_input]
+else:
+    files_hipp = [make_output(f_in, sub, out_suffix) for f_in, sub in zip(files_input, subs)]
 
 print('first file input,', files_input[0])
 # print('first file corrected,', files_corrected[0])

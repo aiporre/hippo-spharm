@@ -2,6 +2,7 @@ import trimesh
 import argparse
 
 # arguments
+import tqdm
 
 import os
 import trimesh
@@ -20,13 +21,14 @@ args = parser.parse_args()
 datapath = args.datapath
 models_dir = os.path.join(args.datapath, "models")
 assert os.path.exists(models_dir), "Directory does not exist"
-assert len([ f for f in os.listdir(models_dir) if f.endswith('.obj') ]) == 0, "Models must contain .obj files"
+file_count = len([ f for f in os.listdir(models_dir) if f.endswith('.obj') ])
+assert file_count > 0, "Models must contain .obj files"
 
 # List to store the results
 data = []
 
 # Iterate through all files in the directory
-for file_name in os.listdir(models_dir):
+for file_name in tqdm.tqdm(os.listdir(models_dir), total=file_count, desc="compute volumens"):
     if file_name.endswith(".obj"):  # Process only .obj files
         # Extract the ID from the file name
         file_id = file_name.split("_", maxsplit=1)[0]
@@ -39,6 +41,8 @@ for file_name in os.listdir(models_dir):
         # Load the 3D model
         file_path = os.path.join(models_dir, file_name)
         mesh = trimesh.load(file_path)
+        # fix normals
+        mesh.fix_normals()
 
         # Compute the volume
         volume = mesh.volume

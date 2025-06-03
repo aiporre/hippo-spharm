@@ -64,12 +64,12 @@ for i, f in enumerate(tqdm(files)):
     # fix the mesh
     if is_skip_fails:
         try:
-            mesh = None #fix_mesh(input_mesh_path, target_vertices=target_vertices, remesh_bin=mesh_bin)
+            mesh = fix_mesh(input_mesh_path, target_vertices=target_vertices, remesh_bin=mesh_bin)
         except:
             print(f"Failed to fix {f}")
             continue
     else:
-        mesh = None #fix_mesh(input_mesh_path, target_vertices=target_vertices, remesh_bin=mesh_bin)
+        mesh = fix_mesh(input_mesh_path, target_vertices=target_vertices, remesh_bin=mesh_bin)
     # save the mesh
     if keep_dirs:
         # create the directory structure in fix_path

@@ -61,6 +61,18 @@ for i, f in enumerate(tqdm(files)):
     input_mesh_path = os.path.join(models_path, f)
     print('---->> model path', models_path)
     print('---->> mesh_file', input_mesh_path)
+    if suffix != '.obj':
+        print(f"Warning: the suffix {suffix} is not .obj, this may cause issues with the remeshing process.")
+        print('convert to temporary .obj file')
+        # convert the mesh to obj file
+        import trimesh
+        mesh = trimesh.load(input_mesh_path)
+        input_mesh_path = input_mesh_path.replace(suffix, '.obj')
+        if os.path.exists(input_mesh_path):
+            print(f"Warning: {input_mesh_path} already exists, it wont be overwritten.")
+        else:
+            mesh.export(input_mesh_path)
+
     # fix the mesh
     if is_skip_fails:
         try:

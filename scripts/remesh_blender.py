@@ -78,3 +78,4 @@ if __name__ == "__main__":
 
     # Call the remesh function
     remesh(inputpath=inputpath, outputpath=outputpath)
+    exit(0)

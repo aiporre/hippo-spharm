@@ -148,5 +148,11 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
                 raise ValueError(f"failed to fix mesh {mesh_filename}")
             break
 
+    if resampled_mesh.vertices.shape[0] != target_vertices:
+        print(f"Warning: Resampled mesh has {resampled_mesh.vertices.shape[0]} vertices instead of {target_vertices} vertices.")
+        print("This may cause issues with further processing.")
+        print("try blender remeshing")
+        remesh(output_filename, output_filename, n=target_vertices, smooth_iterations=2)
+
 
     return resampled_mesh

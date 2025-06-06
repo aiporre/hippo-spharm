@@ -1,6 +1,7 @@
 import os
 import subprocess
 import trimesh
+import numpy as np
 
 
 def remesh(inputpath, outputpath, n=6890, smooth_iterations=2):
@@ -71,7 +72,7 @@ def remesh(inputpath, outputpath, n=6890, smooth_iterations=2):
     print(f"Remeshed model saved to {outputpath}")
     print(f"Vertex count: {len(obj.data.vertices)}")
 
-def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffix='.obj') -> trimesh.Trimesh:
+def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffix='.obj', tolerance_num_vertices=10) -> trimesh.Trimesh:
     """
     Fixes mesh holes, smooths the mesh using Laplacian smoothing, and resamples it to the target number of vertices.
 
@@ -91,10 +92,12 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
 
     # get a temp folder
     temp_dir = "./temp_meshes"
+    if not suffix.startswith('.'):
+        suffix = "." + suffix
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
-    manifold_output_filename = f"{temp_dir}/manifold_output.{suffix}"
-    output_filename = f"{temp_dir}/output.{suffix}"
+    manifold_output_filename = f"{temp_dir}/manifold_output{suffix}"
+    output_filename = f"{temp_dir}/output{suffix}"
 
 
     # Resample the mesh to the target number of vertices
@@ -108,6 +111,9 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
     no_holes = False
     attempts = 0
     aggressivity = 10
+    def within_range(curr_num_vertices):
+        return np.abs(target_vertices - curr_num_vertices) < tolerance_num_vertices
+
     while not no_holes or attempts <= 10:
         print('simplifiying mesh', target_faces, aggressivity, attempts)
         resampled_mesh = mesh.simplify_quadric_decimation(face_count=target_faces, aggression=aggressivity)
@@ -124,8 +130,8 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
             print(f"Number of {broken_face_num} broken faces in the mesh after filling holes?")
 
         broken_face_num = trimesh.repair.broken_faces(resampled_mesh)
-        if len(broken_face_num) == 0 and resampled_mesh.vertices.shape[0] == target_vertices:
-            print('no holes and correct number of vertices')
+        if len(broken_face_num) == 0 and within_range(resampled_mesh.vertices.shape[0]):
+            print('no holes and correct number of vertices (', resampled_mesh.vertices.shape[0],')')
             no_holes = True
             attempts = 11
             resampled_mesh.export(output_filename)
@@ -133,10 +139,12 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
             print('nmber of faces', resampled_mesh.faces.shape[0])
         else:
             aggressivity = aggressivity - 1
+            print(f'current number of vertices: {resampled_mesh.vertices.shape[0]}')
             print(f"After all Found {broken_face_num} broken faces in the mesh. Retrying.., with agresivity {aggressivity}")
         attempts = attempts + 1
         if attempts > 11:
             if not no_holes:
+                print('To many wholes! attemp is more that 11')
                 raise ValueError(f"failed to fix mesh {mesh_filename}")
             break
 

@@ -77,7 +77,8 @@ for i, f in enumerate(tqdm(files)):
     if is_skip_fails:
         try:
             mesh = fix_mesh(input_mesh_path, target_vertices=target_vertices, remesh_bin=mesh_bin)
-        except:
+        except Exception as e:
+            print(e)
             print(f"Failed to fix {f}")
             continue
     else:

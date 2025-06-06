@@ -93,7 +93,10 @@ for i, f in enumerate(tqdm(files)):
                   '--', temp_file, str(target_vertices) ]
         # runinng command
         print('running command', command)
-        subprocess.run(command, check=True)
+        command_out = subprocess.run(command, capture_output=True, text=True)
+        if command_out.returncode != 0:
+            print(f"Failed to remesh {f} with blender. Error: {command_out.stderr}")
+            continue
     # save the mesh
     if keep_dirs:
         # create the directory structure in fix_path

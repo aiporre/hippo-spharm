@@ -71,7 +71,7 @@ def remesh(inputpath, outputpath, n=6890, smooth_iterations=2):
     print(f"Remeshed model saved to {outputpath}")
     print(f"Vertex count: {len(obj.data.vertices)}")
 
-def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None):
+def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffix='.obj') -> trimesh.Trimesh:
     """
     Fixes mesh holes, smooths the mesh using Laplacian smoothing, and resamples it to the target number of vertices.
 
@@ -93,8 +93,8 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None):
     temp_dir = "./temp_meshes"
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
-    manifold_output_filename = f"{temp_dir}/manifold_output.obj"
-    output_filename = f"{temp_dir}/output.obj"
+    manifold_output_filename = f"{temp_dir}/manifold_output.{suffix}"
+    output_filename = f"{temp_dir}/output.{suffix}"
 
 
     # Resample the mesh to the target number of vertices

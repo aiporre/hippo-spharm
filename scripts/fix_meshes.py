@@ -12,22 +12,40 @@ parser.add_argument('datapath', nargs='?', default=os.environ.get('DATAPATH'), h
 parser.add_argument('remeshbin', nargs='?', default=os.environ.get('REMESHBIN'), help='Path to the remesh binary or set the environment variable REMESHBIN')
 parser.add_argument('-N', '--num', type=int, default=6890, help='Number of vertices in the remeshed mesh')
 parser.add_argument('--skip', action='store_true', help='Skip meshes that cannot be fixed')
-
-
-
+parser.add_argument('--keep-dirs', action='store_true', help='keeps the file hierachy of the mesh when fixing it')
+parser.add_argument('--suffix', '-s', type=str, default='.obj', help='Suffix of the mesh files to fix, default is .obj')
 
 args = parser.parse_args()
 datapath = args.datapath
 mesh_bin = args.remeshbin
 target_vertices = args.num
 is_skip_fails = args.skip
+keep_dirs = args.keep_dirs
+suffix = args.suffix
 # create models path
 print(datapath)
 models_path = os.path.join(datapath, 'models')
 fix_path = os.path.join(datapath, 'fixmodels')
 
 # collect all obj files in models path
-files = [f for f in os.listdir(models_path) if f.endswith('.obj')]
+if keep_dirs:
+    # looks files from the models path recursively keeping example plane/train/data.obj
+    files = []
+    for root, dirs, files_in_dir in os.walk(models_path):
+        for f in files_in_dir:
+            if f.endswith(suffix):
+                ff = os.path.join(root, f)
+                ff = ff.replace(models_path, '')
+                if ff.startswith(os.sep):
+                    ff = ff[1:]
+                # remove the models path from the beginning of the path
+                files.append(ff)
+else:
+    files = [f for f in os.listdir(models_path) if f.endswith(suffix)]
+if len(files) == 0:
+    print(f"No {suffix} files found in {models_path}. Please check the directory.")
+    exit(0)
+print(files[0])
 # create a folder called fixmodels in datapath
 if not os.path.exists(fix_path):
     os.makedirs(fix_path)
@@ -41,6 +59,20 @@ for i, f in enumerate(tqdm(files)):
     print(f'{i} : {f}')
     # create a mesh object
     input_mesh_path = os.path.join(models_path, f)
+    print('---->> model path', models_path)
+    print('---->> mesh_file', input_mesh_path)
+    if suffix != '.obj':
+        print(f"Warning: the suffix {suffix} is not .obj, this may cause issues with the remeshing process.")
+        print('convert to temporary .obj file')
+        # convert the mesh to obj file
+        import trimesh
+        mesh = trimesh.load(input_mesh_path)
+        input_mesh_path = input_mesh_path.replace(suffix, '.obj')
+        if os.path.exists(input_mesh_path):
+            print(f"Warning: {input_mesh_path} already exists, it wont be overwritten.")
+        else:
+            mesh.export(input_mesh_path)
+
     # fix the mesh
     if is_skip_fails:
         try:
@@ -51,7 +83,19 @@ for i, f in enumerate(tqdm(files)):
     else:
         mesh = fix_mesh(input_mesh_path, target_vertices=target_vertices, remesh_bin=mesh_bin)
     # save the mesh
-    mesh.export(os.path.join(fix_path, f))
+    if keep_dirs:
+        # create the directory structure in fix_path
+        dir_structure = os.path.dirname(f)
+
+        if dir_structure:
+            os.makedirs(os.path.join(fix_path, dir_structure), exist_ok=True)
+        file = os.path.join(fix_path, f)
+        print('---->> save mesh to', file)
+        mesh.export(os.path.join(fix_path, f))
+    else:
+        # save the mesh in fix_path
+        # without directory structure
+        mesh.export(os.path.join(fix_path, f))
 
 
 

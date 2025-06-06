@@ -89,7 +89,7 @@ for i, f in enumerate(tqdm(files)):
         print('running blender remesh to fix the mesh')
         temp_file = os.path.join(fix_path, f.replace(suffix, '_temp.obj'))
         mesh.export(temp_file)
-        command = ['blender', '--background', '--python-exit-code', '1', '--python', 'hippospharm/blender_remesh.py',
+        command = ['blender', '--background', '--python-exit-code', '1', '--python', 'scripts/blender_remesh.py',
                   '--', temp_file, str(target_vertices) ]
         # runinng command
         print('running command', command)

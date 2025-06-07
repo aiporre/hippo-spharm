@@ -94,6 +94,7 @@ for i, f in enumerate(tqdm(files)):
         # runinng command
         print('running command', command)
         command_out = subprocess.run(command, capture_output=True, text=True)
+        print(command_out.stdout)
         if command_out.returncode != 0:
             print(f"Failed to remesh {f} with blender. Error: {command_out.stderr}")
             continue

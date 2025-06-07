@@ -88,9 +88,10 @@ for i, f in enumerate(tqdm(files)):
     if mesh.vertices.shape[0] != target_vertices:
         print('running blender remesh to fix the mesh')
         temp_file = os.path.join(fix_path, f.replace(suffix, '_temp.obj'))
+        temp_outfile = os.path.join(fix_path, f.replace(suffix, '_temp_fixed.obj'))
         mesh.export(temp_file)
         command = ['blender', '--background', '--python-exit-code', '1', '--python', 'scripts/remesh_blender.py',
-                  '--', temp_file, temp_file, str(target_vertices) ]
+                  '--', temp_file, temp_outfile, str(target_vertices) ]
         # runinng command
         print('running command', command)
         command_out = subprocess.run(command, capture_output=True, text=True)
@@ -98,7 +99,7 @@ for i, f in enumerate(tqdm(files)):
         if command_out.returncode != 0:
             print(f"Failed to remesh {f} with blender. Error: {command_out.stderr}")
             continue
-        mesh = trimesh.load(temp_file)
+        mesh = trimesh.load(temp_outfile)
         print('New number of vertices after blender remesh:', mesh.vertices.shape[0])
 
     # save the mesh

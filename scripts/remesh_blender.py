@@ -75,7 +75,9 @@ if __name__ == "__main__":
     argv = sys.argv
     inputpath = argv[argv.index("--") + 1]  # Input path after '--'
     outputpath = argv[argv.index("--") + 2]  # Output path after '--'
+    num_vertex = argv[argv.index("--") + 3]
+    assert num_vertex.isdigit(), "Number of vertices must be an integer"
 
     # Call the remesh function
-    remesh(inputpath=inputpath, outputpath=outputpath)
+    remesh(inputpath=inputpath, outputpath=outputpath, n=int(num_vertex))
     exit(0)

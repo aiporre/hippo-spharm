@@ -15,6 +15,7 @@ parser.add_argument('-N', '--num', type=int, default=6890, help='Number of verti
 parser.add_argument('--skip', action='store_true', help='Skip meshes that cannot be fixed')
 parser.add_argument('--keep-dirs', action='store_true', help='keeps the file hierachy of the mesh when fixing it')
 parser.add_argument('--suffix', '-s', type=str, default='.obj', help='Suffix of the mesh files to fix, default is .obj')
+parser.add_argument("--plus", action='store_true', help='Use the remeshing binary in plus mode')
 
 args = parser.parse_args()
 datapath = args.datapath
@@ -23,6 +24,7 @@ target_vertices = args.num
 is_skip_fails = args.skip
 keep_dirs = args.keep_dirs
 suffix = args.suffix
+plus = args.plus
 # create models path
 print(datapath)
 models_path = os.path.join(datapath, 'models')
@@ -77,13 +79,13 @@ for i, f in enumerate(tqdm(files)):
     # fix the mesh
     if is_skip_fails:
         try:
-            mesh = fix_mesh(input_mesh_path, target_vertices=target_vertices, remesh_bin=mesh_bin)
+            mesh = fix_mesh(input_mesh_path, target_vertices=target_vertices, remesh_bin=mesh_bin, plus=plus)
         except Exception as e:
             print(e)
             print(f"Failed to fix {f}")
             continue
     else:
-        mesh = fix_mesh(input_mesh_path, target_vertices=target_vertices, remesh_bin=mesh_bin)
+        mesh = fix_mesh(input_mesh_path, target_vertices=target_vertices, remesh_bin=mesh_bin, plus=plus)
     # make last evaluation of the mesh to check number of vertices
     if mesh.vertices.shape[0] != target_vertices:
         print('running blender remesh to fix the mesh')

@@ -4,8 +4,19 @@ import trimesh
 import numpy as np
 
 
+def quadric_decimation_garland(resampled_mesh, target_vertices):
+    # use Garland and Heckbert's quadric error metrics for mesh simplification
+    from quad_mesh_simplify import simplify_mesh
+    positions = np.array(resampled_mesh.vertices).astype(float)
+    face = np.array(resampled_mesh.faces).astype("uint32")
+    print(f'running garland quadric decimation to fix the mesh: from {positions.shape[0]} to {target_vertices} vertices')
+    new_positions, new_face = simplify_mesh(positions, face, target_vertices)
+    resampled_mesh = trimesh.Trimesh(vertices=new_positions, faces=new_face, process=False)
+    print('number of vertices after garland quadric decimation:', resampled_mesh.vertices.shape[0])
+    return resampled_mesh
 
-def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffix='.obj', tolerance_num_vertices=10) -> trimesh.Trimesh:
+
+def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffix='.obj', tolerance_num_vertices=10, plus=False) -> trimesh.Trimesh:
     """
     Fixes mesh holes, smooths the mesh using Laplacian smoothing, and resamples it to the target number of vertices.
 
@@ -35,7 +46,14 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
 
     # Resample the mesh to the target number of vertices
     # execute bin and wait for it to finish
-    subprocess.run([f"{remesh_bin}", mesh_filename, manifold_output_filename], check=True)
+    if plus:
+        result = subprocess.run([f"{remesh_bin}", "--input", mesh_filename, "--output", manifold_output_filename],
+                                check=True, capture_output=True, text=True)
+    else:
+        result = subprocess.run([f"{remesh_bin}", mesh_filename, manifold_output_filename],
+                                check=True, capture_output=True, text=True)
+    print("stdout:", result.stdout)
+    print("stderr:", result.stderr)
     mesh = trimesh.load_mesh(manifold_output_filename)
     broken_face_num = trimesh.repair.broken_faces(mesh)
     print(f"Number of broken triangles found manifold output {broken_face_num}.")
@@ -49,9 +67,19 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
 
     while not no_holes or attempts <= 10:
         print('simplifiying mesh', target_faces, aggressivity, attempts)
-        resampled_mesh = mesh.simplify_quadric_decimation(face_count=target_faces, aggression=aggressivity)
+        # run quadric decimation
+        if attempts>0:
+            # smooth a bit
+            mesh = trimesh.smoothing.filter_laplacian(mesh, iterations=5 + attempts)
+        more_faces = 10 * attempts
+        resampled_mesh = mesh.simplify_quadric_decimation(face_count=target_faces+more_faces, aggression=aggressivity)
         if resampled_mesh.vertices.shape[0] == target_vertices:
+            print("Resampled mesh has the correct number of vertices.")
+        else:
             print( f"Resampled mesh has {resampled_mesh.vertices.shape[0]} vertices instead of {target_vertices} vertices.")
+            print('attempting to fix.. with other library')
+            resampled_mesh = quadric_decimation_garland(resampled_mesh, target_vertices)
+
 
         # save mesh as a.obj file
         broken_face_num = trimesh.repair.broken_faces(resampled_mesh)
@@ -80,6 +108,7 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
                 print('To many wholes! attemp is more that 11')
                 raise ValueError(f"failed to fix mesh {mesh_filename}")
             break
+
 
 
 

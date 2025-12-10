@@ -16,6 +16,7 @@ parser.add_argument('--skip', action='store_true', help='Skip meshes that cannot
 parser.add_argument('--keep-dirs', action='store_true', help='keeps the file hierachy of the mesh when fixing it')
 parser.add_argument('--suffix', '-s', type=str, default='.obj', help='Suffix of the mesh files to fix, default is .obj')
 parser.add_argument("--plus", action='store_true', help='Use the remeshing binary in plus mode')
+parser.add_argument("-t", "--tolerance", type=int, default=10, help="Tolerance for number of vertices difference")
 
 args = parser.parse_args()
 datapath = args.datapath
@@ -25,6 +26,7 @@ is_skip_fails = args.skip
 keep_dirs = args.keep_dirs
 suffix = args.suffix
 plus = args.plus
+tolerance = args.tolerance
 # create models path
 print(datapath)
 models_path = os.path.join(datapath, 'models')
@@ -36,6 +38,7 @@ if keep_dirs:
     files = []
     for root, dirs, files_in_dir in os.walk(models_path):
         for f in files_in_dir:
+            print('checking file', f)
             if f.endswith(suffix):
                 ff = os.path.join(root, f)
                 ff = ff.replace(models_path, '')
@@ -85,7 +88,7 @@ for i, f in enumerate(tqdm(files)):
             print(f"Failed to fix {f}")
             continue
     else:
-        mesh = fix_mesh(input_mesh_path, target_vertices=target_vertices, remesh_bin=mesh_bin, plus=plus)
+        mesh = fix_mesh(input_mesh_path, target_vertices=target_vertices, remesh_bin=mesh_bin, plus=plus, tolerance_num_vertices=tolerance)
     # make last evaluation of the mesh to check number of vertices
     if mesh.vertices.shape[0] != target_vertices:
         print('running blender remesh to fix the mesh')

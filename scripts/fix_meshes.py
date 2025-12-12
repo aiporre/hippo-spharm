@@ -72,7 +72,8 @@ for i, f in enumerate(tqdm(files)):
     print('---->> model path', models_path)
     print('---->> mesh_file', input_mesh_path)
     # make lock file
-    lock_file = os.path.join(fix_path, f + '.lock')
+    lock_file = os.path.join(fix_path, os.path.basename(f) + '.lock')
+    #
     if os.path.exists(lock_file):
         print(f"Lock file {lock_file} exists, skipping {f}")
         continue

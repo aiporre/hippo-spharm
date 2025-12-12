@@ -43,9 +43,23 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
     manifold_output_filename = f"{temp_dir}/manifold_output{suffix}"
     output_filename = f"{temp_dir}/output{suffix}"
 
+    # Load the original mesh and check if remeshing is necessary
+    original_mesh = trimesh.load_mesh(mesh_filename)
+    broken_faces = trimesh.repair.broken_faces(original_mesh)
+    num_broken = len(broken_faces) if hasattr(broken_faces, '__len__') else int(broken_faces)
+    num_vertices = original_mesh.vertices.shape[0]
+    print(f"Original mesh: {num_broken} broken faces, {num_vertices} vertices.")
 
-    # Resample the mesh to the target number of vertices
-    # execute bin and wait for it to finish
+    if num_broken == 0 and abs(num_vertices - target_vertices) < tolerance_num_vertices:
+        print("Mesh already has no holes and is within target vertex tolerance. Skipping remeshing.")
+        # export to output file for consistency and return
+        original_mesh.export(output_filename)
+        return original_mesh
+
+    # remeshing required, ensure remesh binary is provided
+    assert remesh_bin is not None, "manifold_bin_path is not provided but remeshing is required"
+
+    # execute remeshing binary and wait for it to finish
     if plus:
         result = subprocess.run([f"{remesh_bin}", "--input", mesh_filename, "--output", manifold_output_filename],
                                 check=True, capture_output=True, text=True)
@@ -55,44 +69,49 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
     print("stdout:", result.stdout)
     print("stderr:", result.stderr)
     mesh = trimesh.load_mesh(manifold_output_filename)
-    broken_face_num = trimesh.repair.broken_faces(mesh)
-    print(f"Number of broken triangles found manifold output {broken_face_num}.")
+    broken_faces = trimesh.repair.broken_faces(mesh)
+    print(f"Number of broken triangles found manifold output {broken_faces} and number of vertices {mesh.vertices.shape[0]}.")
     # if there are broken faces try to fix them
-    if len(broken_face_num) > 0:
+    if len(broken_faces) > 0:
         print("Fixing them.. filling holes")
         trimesh.repair.fill_holes(mesh)
-        broken_face_num = trimesh.repair.broken_faces(mesh)
-        print(f"Number of broken triangles after filling holes {broken_face_num}.")
+        broken_faces = trimesh.repair.broken_faces(mesh)
+        print(f"Number of broken triangles after filling holes {broken_faces}.")
     # if still broken faces just load the original mesh
-    if len(broken_face_num) > 0:
+    if len(broken_faces) > 0:
         print("Still broken faces after filling holes, loading original mesh")
         mesh = trimesh.load_mesh(mesh_filename)
         print("Number of broken triangles in original mesh:", trimesh.repair.broken_faces(mesh))
-    broken_face_num = trimesh.repair.broken_faces(mesh)
-    if len(broken_face_num) > 0:
+    broken_faces = trimesh.repair.broken_faces(mesh)
+    if len(broken_faces) > 0:
         print("Warning: still broken faces in the mesh, proceeding anyway.")
     # check first is if with garland quadric decimation we can reach the target vertices directly
     if mesh.vertices.shape[0] > target_vertices and mesh.vertices.shape[0] < 10*target_vertices:
         print('attempting to reach target vertices directly with garland quadric decimation')
         resampled_mesh = quadric_decimation_garland(mesh, target_vertices)
-        broken_face_num = trimesh.repair.broken_faces(resampled_mesh)
-        if len(broken_face_num) == 0 and np.abs(resampled_mesh.vertices.shape[0] - target_vertices) < tolerance_num_vertices:
+        broken_faces = trimesh.repair.broken_faces(resampled_mesh)
+        if len(broken_faces) == 0 and np.abs(resampled_mesh.vertices.shape[0] - target_vertices) < tolerance_num_vertices:
             print('successfully reached target vertices with garland quadric decimation')
             mesh = resampled_mesh
             mesh.export(output_filename)
             return mesh
         else:
             print('failed to reach target vertices with garland quadric decimation, proceeding with iterative approach " \n',
-                  f'current number of vertices: {resampled_mesh.vertices.shape[0]}, broken faces: {broken_face_num}')
+                  f'current number of vertices: {resampled_mesh.vertices.shape[0]}, broken faces: {broken_faces}')
     # compute the number of faces
+    def within_range(curr_num_vertices):
+        return np.abs(target_vertices - curr_num_vertices) < tolerance_num_vertices
+    # check before
+    if len(broken_faces) == 0 and within_range(mesh.vertices.shape[0]):
+        print('mesh is already good, no holes and correct number of vertices (', mesh.vertices.shape[0],')')
+        mesh.export(output_filename)
+        return mesh
     target_faces = 2 * target_vertices - 4
     no_holes = False
     attempts = 0
     aggressivity = 10
     more_faces = 0
     smooth_iteration = 5
-    def within_range(curr_num_vertices):
-        return np.abs(target_vertices - curr_num_vertices) < tolerance_num_vertices
 
     while not no_holes or attempts <= 10:
         print('simplifiying mesh', target_faces, aggressivity, attempts)
@@ -124,16 +143,16 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
 
 
         # save mesh as a.obj file
-        broken_face_num = trimesh.repair.broken_faces(resampled_mesh)
-        print(f"Found {broken_face_num} broken faces in the mesh after quadric decimation.")
-        if len(broken_face_num) > 0:
+        broken_faces = trimesh.repair.broken_faces(resampled_mesh)
+        print(f"Found {broken_faces} broken faces in the mesh after quadric decimation.")
+        if len(broken_faces) > 0:
             print(f"Fixing them.. filling holes")
             trimesh.repair.fill_holes(resampled_mesh)
             # resampled_mesh = trimesh.smoothing.filter_laplacian(resampled_mesh, iterations=10)
-            print(f"Number of {broken_face_num} broken faces in the mesh after filling holes?")
+            print(f"Number of {broken_faces} broken faces in the mesh after filling holes?")
 
-        broken_face_num = trimesh.repair.broken_faces(resampled_mesh)
-        if len(broken_face_num) == 0 and within_range(resampled_mesh.vertices.shape[0]):
+        broken_faces = trimesh.repair.broken_faces(resampled_mesh)
+        if len(broken_faces) == 0 and within_range(resampled_mesh.vertices.shape[0]):
             print('no holes and correct number of vertices (', resampled_mesh.vertices.shape[0],')')
             no_holes = True
             attempts = 11
@@ -143,7 +162,7 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
         else:
             aggressivity = aggressivity - 1
             print(f'current number of vertices: {resampled_mesh.vertices.shape[0]}')
-            print(f"After all Found {broken_face_num} broken faces in the mesh. Retrying.., with agresivity {aggressivity}")
+            print(f"After all Found {broken_faces} broken faces in the mesh. Retrying.., with agresivity {aggressivity}")
         attempts = attempts + 1
         if attempts > 11:
             if not no_holes:

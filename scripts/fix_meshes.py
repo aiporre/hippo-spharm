@@ -106,8 +106,9 @@ for i, f in enumerate(tqdm(files)):
     # make last evaluation of the mesh to check number of vertices
     if mesh.vertices.shape[0] != target_vertices:
         print('running blender remesh to fix the mesh')
-        temp_file = os.path.join(fix_path, f.replace(suffix, '_temp.obj'))
-        temp_outfile = os.path.join(fix_path, f.replace(suffix, '_temp_fixed.obj'))
+        temp_file = os.path.join(fix_path, os.path.basename(f).replace(suffix, '_temp.obj'))
+        temp_outfile = os.path.join(fix_path, os.path.basename(f).replace(suffix, '_temp_fixed.obj'))
+
         mesh.export(temp_file)
         command = ['blender', '--background', '--python-exit-code', '1', '--python', 'scripts/remesh_blender.py',
                   '--', temp_file, temp_outfile, str(target_vertices) ]

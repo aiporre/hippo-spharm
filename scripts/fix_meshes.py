@@ -4,6 +4,7 @@ import argparse
 import os
 from tqdm import tqdm
 from hippospharm.fix_mesh import fix_mesh
+import random
 
 # get argument datapath from sys.argv
 
@@ -61,12 +62,24 @@ else:
 print('--------------------')
 print('processing....')
 # create list of commands
+# shuffle files
+random.shuffle(files)
+
 for i, f in enumerate(tqdm(files)):
     print(f'{i} : {f}')
     # create a mesh object
     input_mesh_path = os.path.join(models_path, f)
     print('---->> model path', models_path)
     print('---->> mesh_file', input_mesh_path)
+    # make lock file
+    lock_file = os.path.join(fix_path, f + '.lock')
+    if os.path.exists(lock_file):
+        print(f"Lock file {lock_file} exists, skipping {f}")
+        continue
+    else:
+        # create lock file
+        with open(lock_file, 'w+') as lf:
+            lf.write('lock')
     if suffix != '.obj':
         print(f"Warning: the suffix {suffix} is not .obj, this may cause issues with the remeshing process.")
         print('convert to temporary .obj file')
@@ -121,6 +134,9 @@ for i, f in enumerate(tqdm(files)):
         # save the mesh in fix_path
         # without directory structure
         mesh.export(os.path.join(fix_path, f))
+    # remove lock file
+    os.remove(lock_file)
+    print(f"Finished processing {f}, saved to fixmodels.")
 
 
 

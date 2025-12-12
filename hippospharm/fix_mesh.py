@@ -71,6 +71,19 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
     broken_face_num = trimesh.repair.broken_faces(mesh)
     if len(broken_face_num) > 0:
         print("Warning: still broken faces in the mesh, proceeding anyway.")
+    # check first is if with garland quadric decimation we can reach the target vertices directly
+    if mesh.vertices.shape[0] > target_vertices and mesh.vertices.shape[0] < 10*target_vertices:
+        print('attempting to reach target vertices directly with garland quadric decimation')
+        resampled_mesh = quadric_decimation_garland(mesh, target_vertices)
+        broken_face_num = trimesh.repair.broken_faces(resampled_mesh)
+        if len(broken_face_num) == 0 and np.abs(resampled_mesh.vertices.shape[0] - target_vertices) < tolerance_num_vertices:
+            print('successfully reached target vertices with garland quadric decimation')
+            mesh = resampled_mesh
+            mesh.export(output_filename)
+            return mesh
+        else:
+            print('failed to reach target vertices with garland quadric decimation, proceeding with iterative approach " \n',
+                  f'current number of vertices: {resampled_mesh.vertices.shape[0]}, broken faces: {broken_face_num}')
     # compute the number of faces
     target_faces = 2 * target_vertices - 4
     no_holes = False

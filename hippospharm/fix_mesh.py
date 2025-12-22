@@ -40,8 +40,10 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
         suffix = "." + suffix
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
-    manifold_output_filename = f"{temp_dir}/manifold_output{suffix}"
-    output_filename = f"{temp_dir}/output{suffix}"
+
+    fbname = os.path.basename(mesh_filename).replace(suffix, '')
+    manifold_output_filename = f"{temp_dir}/{fbname}_manifold_output{suffix}"
+    output_filename = f"{temp_dir}/{fbname}_output{suffix}"
 
     # Load the original mesh and check if remeshing is necessary
     original_mesh = trimesh.load_mesh(mesh_filename)

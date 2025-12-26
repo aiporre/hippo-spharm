@@ -13,19 +13,21 @@ from random import shuffle
 parser = argparse.ArgumentParser(description='hipp segmentation')
 parser.add_argument('dataset_path', type=str, help='dataset path')
 parser.add_argument('-p', '--processes', type=int, default=1, help='number of processes')
-parser.add_argument('-t', '--target', type=str, default="brain", help='target image to extact: brain, corrected, reoriented, mni')
+parser.add_argument('-t', '--target', type=str, default="brain",
+                    help='target image to extact: brain, corrected, reoriented, mni')
 parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions')
-parser.add_argument("--tool", type=str, default="seg_hipp", help="tool to use for hippocampus segmentation", choices=["hippmapper"])
+parser.add_argument("--tool", type=str, default="hippmapper", help="tool to use for hippocampus segmentation",
+                    choices=["hippmapper", "freesurfer"])
 args = parser.parse_args()
 
 dataset_path = args.dataset_path
-PROCESSES = max(1, multiprocessing.cpu_count()-3)
+PROCESSES = max(1, multiprocessing.cpu_count() - 3)
 processes = args.processes
 is_find_sessions = args.sessions
 target_type = args.target
 tool = args.tool
 # check if the target type is in the list
-if target_type not in ['brain', 'corrected', 'reoriented', 'mni']:
+if target_type not in ['brain', 'corrected', 'reoriented', 'mni', 't1w']:
     print('target_type is not in the list check the help command -h')
     print('exit 0')
     sys.exit(0)
@@ -43,7 +45,6 @@ if not os.path.isdir(dataset_path):
     print("Error: Directory is missing", dataset_path, " is not a valid direcot")
     sys.exit(0)
 
-
 subs = [f for f in os.listdir(dataset_path) if f.startswith('sub')]
 
 if len(subs) == 0:
@@ -51,9 +52,10 @@ if len(subs) == 0:
     print("Done")
     sys.exit(0)
 
+
 # find the inputs as dict
 def get_mri(sub):
-    files = os.listdir(os.path.join(dataset_path,sub,'anat'))
+    files = os.listdir(os.path.join(dataset_path, sub, 'anat'))
     if target_type == 'brain':
         mri_file = [f for f in files if f.endswith('_brain.nii.gz')][0]
     elif target_type == 'reoriented':
@@ -68,10 +70,11 @@ def get_mri(sub):
         raise Exception(f'Unknown target type: {target_type}')
     return os.path.join(dataset_path, sub, 'anat', mri_file)
 
+
 def get_mri_session(sub):
     ## look for all the files of sessions
-    sessions = [f for f in os.listdir(os.path.join(dataset_path,sub)) if f.startswith('ses')]
-    session_paths = [os.path.join(dataset_path,sub, session, 'anat') for session in sessions]
+    sessions = [f for f in os.listdir(os.path.join(dataset_path, sub)) if f.startswith('ses')]
+    session_paths = [os.path.join(dataset_path, sub, session, 'anat') for session in sessions]
     mri_files = []
     for session_path in session_paths:
         files = os.listdir(session_path)
@@ -83,6 +86,8 @@ def get_mri_session(sub):
             mri_file = [f for f in files if f.endswith('_corrected.nii.gz')]
         elif target_type == 'mni':
             mri_file = [f for f in files if f.endswith('_mni.nii.gz')]
+        elif target_type == 't1w':
+            mri_file = [f for f in files if f.endswith('_T1w.nii.gz')]
         else:
             raise Exception(f'Unknown target type: {target_type}')
         if len(mri_file) == 0:
@@ -92,6 +97,7 @@ def get_mri_session(sub):
 
     return mri_files
 
+
 # make a list of inputs
 if is_find_sessions:
     files_input = []
@@ -100,14 +106,14 @@ if is_find_sessions:
 else:
     files_input = [get_mri(sub) for sub in subs]
 
-print('one mri file' , files_input[0])
+print('one mri file', files_input[0])
 
 
 # make a list of outputs changing a suffix -corrected.nii.gz
-def make_output(f_input, sub,  suffix):
+def make_output(f_input, sub, suffix):
     var_path = os.path.dirname(f_input)
     print('subs', sub)
-    var_path = os.path.join(var_path,  sub + '_' + suffix + '.nii.gz')
+    var_path = os.path.join(var_path, sub + '_' + suffix + '.nii.gz')
     return var_path
 
 
@@ -144,7 +150,6 @@ print('first file input,', files_input[0])
 # print('first file corrected,', files_corrected[0])
 print('first file files_hipp,', files_hipp[0])
 
-
 # make a list of commands for hippocampus segmentation
 commands = []
 for f_in, f_out in zip(files_input, files_hipp):
@@ -152,7 +157,7 @@ for f_in, f_out in zip(files_input, files_hipp):
         if tool == "hippmapper":
             commands.append(['seg_hipp', '-t1', f_in, '-o', f_out])
         elif tool == "freesurfer":
-            commands.append(['bash','./scripts/freesurfer_hippocampus_segmentation.sh', f_in, f_out])
+            commands.append(['bash', './scripts/freesurfer_hippocampus_segmentation.sh', f_in, f_out])
 print(' we have ', len(commands), 'commands to run')
 print(' number of files was ', len(files_input))
 print('shuffle commands')
@@ -161,7 +166,8 @@ print('ready...goo....')
 # run the commands
 import time
 
-def execute_command(*c):
+
+def execute_command(c):
     print('command', c)
     #c = list(c)
     start_time = time.time()
@@ -193,9 +199,10 @@ def execute_command(*c):
 
     print("--- %s seconds ---" % (time.time() - start_time))
 
-def execute_command_multiprocessing(*c):
+
+def execute_command_multiprocessing(c):
     print('command', c)
-    c = list(c[0])
+    # c = list(c[0])
     start_time = time.time()
     f_out = c[-1]
     f_lock = f_out.replace(".nii.gz", ".lock")
@@ -216,7 +223,6 @@ def execute_command_multiprocessing(*c):
         else:
             print(f'Unknown command {c}')
 
-
         print(f'file out generated {f_out}')
         os.remove(f_lock)
         assert not os.path.exists(f_lock), f"{f_lock} still there "
@@ -226,6 +232,7 @@ def execute_command_multiprocessing(*c):
         print(f"{f_out} exists, skipping")
     print(f'file out generated {f_out}')
     print("--- %s seconds ---" % (time.time() - start_time))
+
 
 if processes == 1:
     for c in tqdm.tqdm(commands, desc='hipp segmentation', total=len(commands)):
@@ -237,7 +244,7 @@ if processes == 1:
         # main(c)
         # Create a multiprocessing Process object for my_function
         #execute_command(c)
-        p = multiprocessing.Process(target=execute_command, args=(c))
+        p = multiprocessing.Process(target=execute_command, args=(c,))
 
         # Start the process
         p.start()
@@ -254,5 +261,6 @@ if processes == 1:
 else:
     # create a pool of processes=PROCESSES to run comand with arguments commands in parallel
     with multiprocessing.Pool(processes=processes) as pool:
-        for _ in tqdm.tqdm(pool.imap_unordered(execute_command_multiprocessing, commands), desc='hipp segmentation', total=len(commands)):
+        for _ in tqdm.tqdm(pool.imap_unordered(execute_command_multiprocessing, commands), desc='hipp segmentation',
+                           total=len(commands)):
             pass

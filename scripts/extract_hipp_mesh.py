@@ -2,7 +2,7 @@
 # the features are computed in each hippocampus right and left.
 import argparse
 import os
-
+from random import shuffle
 import pandas as pd
 
 from hippospharm.segmentation import BrainImage, Mesh
@@ -120,8 +120,9 @@ if not args.overwrite:
     values = values_filtered
 
 
+shuffle(values)
 
-for filename, mask_file, sub in tqdm.tqdm(values, desc='loading images', total=len(files_corrected)):
+for filename, mask_file, sub in tqdm.tqdm(values, desc='loading images', total=len(values)):
     print('---->> processing: ', filename)
     # check if lock file exists
     f_lock = filename.replace(".nii.gz", ".meshlock")

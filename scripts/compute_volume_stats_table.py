@@ -87,51 +87,58 @@ def compute_subject_volumes(subject_id_and_path):
 
     try:
         # --- Process Native Space Hippocampus Segmentation ---
+        #print('compute 1')
         if native_seg_path:
             img = nib.load(native_seg_path)
             voxel_vol = np.prod(img.header.get_zooms())
-            data = img.get_fdata(dtype=np.uint8)
+            data = img.get_fdata(dtype=float)
+            #print(data.shape)
             results['left_hipp_voxels'] = np.sum(data == 2)
             results['left_hipp_mm3'] = results['left_hipp_voxels'] * voxel_vol
             results['right_hipp_voxels'] = np.sum(data == 1)
             results['right_hipp_mm3'] = results['right_hipp_voxels'] * voxel_vol
         else:
-            # print(f"Warning: Native seg mask not found for {subject_id}")
+            print(f"Warning: Native seg mask not found for {subject_id}")
             pass
-
+        #print('compute ICV') 
         # --- Process Native Space Brain Mask (ICV) ---
         if native_brain_mask_path:
             img = nib.load(native_brain_mask_path)
             voxel_vol = np.prod(img.header.get_zooms())
-            data = img.get_fdata(dtype=np.uint8)
+            data = img.get_fdata(dtype=float)
+            #print(data.shape)
             results['icv_voxels'] = np.count_nonzero(data)
             results['icv_mm3'] = results['icv_voxels'] * voxel_vol
         else:
-            # print(f"Warning: Native brain mask not found for {subject_id}")
+            print(f"Warning: Native brain mask not found for {subject_id}")
             pass
 
+        #print('compute mni vol space') 
         # --- Process MNI Space Brain Volume ---
         if mni_brain_path:
             img = nib.load(mni_brain_path)
             voxel_vol = np.prod(img.header.get_zooms())
-            data = img.get_fdata(dtype=np.float32)
+            data = img.get_fdata(dtype=float)
+            #print(data.shape)
             results['mni_brain_voxels'] = np.count_nonzero(data)
             results['mni_brain_mm3'] = results['mni_brain_voxels'] * voxel_vol
         else:
-            # print(f"Warning: MNI brain file not found for {subject_id}")
+            print(f"Warning: MNI brain file not found for {subject_id}")
             pass
 
+        #print('compute mni hip space') 
         # --- Process MNI Space Hippocampus Segmentation ---
         if mni_seg_path:
             img = nib.load(mni_seg_path)
             voxel_vol = np.prod(img.header.get_zooms())
-            data = img.get_fdata(dtype=np.uint8)
+            data = img.get_fdata(dtype=float)
+            #print(data.shape)
             results['mni_left_hipp_voxels'] = np.sum(data == 2)
             results['mni_left_hipp_mm3'] = results['mni_left_hipp_voxels'] * voxel_vol
             results['mni_right_hipp_voxels'] = np.sum(data == 1)
             results['mni_right_hipp_mm3'] = results['mni_right_hipp_voxels'] * voxel_vol
         else:
-            # print(f"Warning: MNI seg mask not found for {subject_id}")
+            print(f"Warning: MNI seg mask not found for {subject_id}")
             pass
 
         return results
@@ -162,7 +169,7 @@ if __name__ == "__main__":
     print(f'Found {len(subjects)} subjects/sessions to process.')
 
     tasks = [(sub, args.dataset_path) for sub in subjects]
-
+    # tasks = tasks[:10]
     all_results = []
     print(f"Starting volume computation with {args.processes} processes...")
     with multiprocessing.Pool(processes=args.processes) as pool:
@@ -171,7 +178,7 @@ if __name__ == "__main__":
                 if result:
                     all_results.append(result)
                 pbar.update()
-
+    print(all_results)
     if not all_results:
         print("\nNo volumes were computed. Please check for mask files and potential warnings.")
         sys.exit(0)

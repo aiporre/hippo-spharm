@@ -4,6 +4,7 @@ import multiprocessing
 import tqdm
 import time
 from hippmapper.cli import main
+import subprocess
 import argparse
 from filelock import FileLock
 from random import shuffle
@@ -14,6 +15,7 @@ parser.add_argument('dataset_path', type=str, help='dataset path')
 parser.add_argument('-p', '--processes', type=int, default=1, help='number of processes')
 parser.add_argument('-t', '--target', type=str, default="brain", help='target image to extact: brain, corrected, reoriented, mni')
 parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions')
+parser.add_argument("--tool", type=str, default="seg_hipp", help="tool to use for hippocampus segmentation", choices=["hippmapper"])
 args = parser.parse_args()
 
 dataset_path = args.dataset_path
@@ -21,6 +23,7 @@ PROCESSES = max(1, multiprocessing.cpu_count()-3)
 processes = args.processes
 is_find_sessions = args.sessions
 target_type = args.target
+tool = args.tool
 # check if the target type is in the list
 if target_type not in ['brain', 'corrected', 'reoriented', 'mni']:
     print('target_type is not in the list check the help command -h')
@@ -135,7 +138,10 @@ print('first file files_hipp,', files_hipp[0])
 commands = []
 for f_in, f_out in zip(files_input, files_hipp):
     if not os.path.exists(f_out):
-        commands.append(['seg_hipp', '-t1', f_in, '-o', f_out])
+        if tool == "hippmapper":
+            commands.append(['seg_hipp', '-t1', f_in, '-o', f_out])
+        elif tool == "freesurfer":
+            commands.append(['bash','./scripts/freesurfer_hippocampus_segmentation.sh', f_in, f_out])
 print(' we have ', len(commands), 'commands to run')
 print(' number of files was ', len(files_input))
 print('shuffle commands')
@@ -153,7 +159,19 @@ def execute_command(*c):
     if not os.path.exists(f_out) and not os.path.exists(f_lock):
         with open(f_lock, 'w+') as f:
             f.write('')
+        if c[0] == 'seg_hipp':
+            print(f'Running hippocampus segmentation with HippMapp3r for {f_out}')
             main(c)
+        elif c[0] == 'bash':
+            print(f'Running hippocampus segmentation with FreeSurfer for {f_out}')
+            # run bash with subprocessA
+            command_out = subprocess.run(c, capture_output=True, text=True)
+            print(command_out.stdout)
+            if command_out.returncode != 0:
+                print(f"Error running command: {' '.join(c)}")
+                print(command_out.stderr)
+        else:
+            print(f'Unknown command {c[0]}')
         print(f'file out generated {f_out}')
         os.remove(f_lock)
         assert not os.path.exists(f_lock), f"{f_lock} still there "
@@ -173,7 +191,21 @@ def execute_command_multiprocessing(*c):
     if not os.path.exists(f_out) and not os.path.exists(f_lock):
         with open(f_lock, 'w+') as f:
             f.write('')
+        if c[0] == 'seg_hipp':
+            print(f'Running hippocampus segmentation with HippMapp3r for {f_out}')
             main(c)
+        elif c[0] == 'bash':
+            print(f'Running hippocampus segmentation with FreeSurfer for {f_out}')
+            # run bash with subprocess
+            command_out = subprocess.run(c, capture_output=True, text=True)
+            print(command_out.stdout)
+            if command_out.returncode != 0:
+                print(f"Error running command: {' '.join(c)}")
+                print(command_out.stderr)
+        else:
+            print(f'Unknown command {c}')
+
+
         print(f'file out generated {f_out}')
         os.remove(f_lock)
         assert not os.path.exists(f_lock), f"{f_lock} still there "

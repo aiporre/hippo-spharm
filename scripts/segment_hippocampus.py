@@ -62,6 +62,8 @@ def get_mri(sub):
         mri_file = [f for f in files if f.endswith('_corrected.nii.gz')][0]
     elif target_type == 'mni':
         mri_file = [f for f in files if f.endswith('_mni.nii.gz')][0]
+    elif target_type == 't1w':
+        mri_file = [f for f in files if f.endswith('_T1w.nii.gz')][0]
     else:
         raise Exception(f'Unknown target type: {target_type}')
     return os.path.join(dataset_path, sub, 'anat', mri_file)
@@ -120,10 +122,19 @@ def make_output_sessions(f_input, suffix):
 #     files_corrected = [make_output(f_in, sub, 'brain') for f_in, sub in zip(files_input, subs)]
 # else:
 #     files_corrected = [make_output(f_in, sub, 'corrected') for f_in, sub in zip(files_input, subs)]
-if target_type == 'brain':
-    out_suffix = 'seg'
+if tool == "hippmapper":
+    if target_type == 'brain':
+        out_suffix = 'seg'
+    else:
+        out_suffix = f'{target_type}_seg'
+elif tool == "freesurfer":
+    if target_type == 'brain':
+        out_suffix = 'fsseg'
+    else:
+        out_suffix = f'{target_type}_fsseg'
 else:
-    out_suffix = f'{target_type}_seg'
+    raise Exception(f'Unknown tool {tool} for hippocampus segmentation')
+
 if is_find_sessions:
     files_hipp = [make_output_sessions(f_in, out_suffix) for f_in in files_input]
 else:

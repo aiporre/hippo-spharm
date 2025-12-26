@@ -146,6 +146,7 @@ for filename, mask_file, sub in tqdm.tqdm(values, desc='loading images', total=l
         # create a BrainImage object
         brain_image = BrainImage(filename, mask_file=mask_file)
         spacing = brain_image.get_spacing()
+        assert all(spacing == [1, 1, 1]), 'Spacing is not consistent'
         # create a list of right hippocampus
         right_hipp = brain_image.get_hippocampus('right')
         # get features for each surface printing a progress bar with tqdm

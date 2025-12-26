@@ -157,7 +157,7 @@ for f_in, f_out in zip(files_input, files_hipp):
         if tool == "hippmapper":
             commands.append(['seg_hipp', '-t1', f_in, '-o', f_out])
         elif tool == "freesurfer":
-            commands.append(['bash', './scripts/freesurfer_hippocampus_segmentation.sh', f_in, f_out])
+            commands.append(['bash', './scripts/freesurfer_hipp_segmentation.sh', f_in, f_out])
 print(' we have ', len(commands), 'commands to run')
 print(' number of files was ', len(files_input))
 print('shuffle commands')

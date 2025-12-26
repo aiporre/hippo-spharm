@@ -182,7 +182,10 @@ def execute_command(c):
         elif c[0] == 'bash':
             print(f'Running hippocampus segmentation with FreeSurfer for {f_out}')
             # run bash with subprocessA
-            command_out = subprocess.run(c, capture_output=True, text=True)
+            command_out = subprocess.run(c, 
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True)
             print(command_out.stdout)
             if command_out.returncode != 0:
                 print(f"Error running command: {' '.join(c)}")
@@ -215,7 +218,10 @@ def execute_command_multiprocessing(c):
         elif c[0] == 'bash':
             print(f'Running hippocampus segmentation with FreeSurfer for {f_out}')
             # run bash with subprocess
-            command_out = subprocess.run(c, capture_output=True, text=True)
+            command_out = subprocess.run(c, 
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True)
             print(command_out.stdout)
             if command_out.returncode != 0:
                 print(f"Error running command: {' '.join(c)}")

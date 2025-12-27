@@ -42,6 +42,8 @@ subject_id="FS_${base_name}"
 if [ -d "$SUBJECTS_DIR/$subject_id" ]; then
   echo "Removing existing FreeSurfer subject directory $SUBJECTS_DIR/$subject_id"
   rm -rf "$SUBJECTS_DIR/$subject_id"
+else:
+  echo "Creating FreeSurfer subject directory $SUBJECTS_DIR/$subject_id"
 fi
 # remove the special characters from subject id
 subject_id=$(echo "$subject_id" | tr -cd '[:alnum:]_')

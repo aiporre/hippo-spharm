@@ -1,11 +1,16 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 # This script performs hippocampal subfield segmentation using FreeSurfer's
 # segmentHA_T1.sh command. It requires a T1-weighted MRI image as input
 # and outputs a hippocampal segmentation file give as second input
 # Usage: ./freesurfer_hipp_segmentation.sh <T1_image>
 
-set -euo pipefail
+# Strict mode: exit on first error, treat unset vars as errors, fail on pipe errors
+set -Eeuo pipefail
+# Make word splitting safer in loops and expansions
+IFS=$'\n\t'
+# Report failing line on error and exit with the same status
+trap 'rc=$?; echo "ERROR: $0 failed at line ${LINENO} with exit code ${rc}" >&2; exit ${rc}' ERR
 
 input_image=$1
 output_hippo=$2
@@ -51,15 +56,15 @@ if [ ! -f "$aseg_file" ]; then
 fi
 cd "$fs_mask_dir"
 # create left hippocampus mask
-mri_binarize --i "$aseg_file" --match 17 --o "$lh_hippocampus.nii.gz" --binval 1
+mri_binarize --i "$aseg_file" --match 17 --o "lh_hippocampus.nii.gz" --binval 1
 # create right hippocampus mask
-mri_binarize --i "$aseg_file" --match 53 --o "$rh_hippocampus.nii.gz" --binval 2
+mri_binarize --i "$aseg_file" --match 53 --o "rh_hippocampus.nii.gz" --binval 2
 # combine left and right hippocampus masks
-fslmaths "$lh_hippocampus.nii.gz" -add "$rh_hippocampus.nii.gz" "hippo.mgz"
+fslmaths "lh_hippocampus.nii.gz" -add "rh_hippocampus.nii.gz" "hippo.mgz"
 # move the output file to input directory
 mri_convert "hippo.mgz" "$output_hippo"
 echo "Hippocampal segmentation saved to $output_hippo"
 # clean up intermediate files
-rm "$lh_hippocampus.nii.gz" "$rh_hippocampus.nii.gz" "hippo.mgz"
+rm "lh_hippocampus.nii.gz" "rh_hippocampus.nii.gz" "hippo.mgz"
 echo "Done"
 

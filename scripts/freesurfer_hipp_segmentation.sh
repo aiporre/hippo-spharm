@@ -38,15 +38,16 @@ input_nii=$(realpath "$input_image")
 export SUBJECTS_DIR="$input_dir"
 # subject id is the base name of the input image
 subject_id="FS_${base_name}"
+# remove the special characters from subject id
+subject_id=$(echo "$subject_id" | tr -cd '[:alnum:]_')
 # check if SUBJECTS_DIR exists, if so, then remove it
 if [ -d "$SUBJECTS_DIR/$subject_id" ]; then
   echo "Removing existing FreeSurfer subject directory $SUBJECTS_DIR/$subject_id"
-  rm -rf "$SUBJECTS_DIR/$subject_id"
-else:
+  reconall_out_dir="$SUBJECTS_DIR/$subject_id"
+  rm -rf "{$reconall_out_dir:?}"
+else
   echo "Creating FreeSurfer subject directory $SUBJECTS_DIR/$subject_id"
 fi
-# remove the special characters from subject id
-subject_id=$(echo "$subject_id" | tr -cd '[:alnum:]_')
 # run command reconall
 recon-all -i "$input_nii" -s "$subject_id" -all
 # extract hippocampus masks 17 and 53 and join into one file

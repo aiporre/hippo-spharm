@@ -33,6 +33,11 @@ input_nii=$(realpath "$input_image")
 export SUBJECTS_DIR="$input_dir"
 # subject id is the base name of the input image
 subject_id="FS_${base_name}"
+# check if SUBJECTS_DIR exists, if so, then remove it
+if [ -d "$SUBJECTS_DIR/$subject_id" ]; then
+  echo "Removing existing FreeSurfer subject directory $SUBJECTS_DIR/$subject_id"
+  rm -rf "$SUBJECTS_DIR/$subject_id"
+fi
 # remove the special characters from subject id
 subject_id=$(echo "$subject_id" | tr -cd '[:alnum:]_')
 # run command reconall

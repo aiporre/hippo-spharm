@@ -13,7 +13,7 @@ mri_convert). If these are not installed or available in PATH, the function will
 raise a RuntimeError (unless run_cmds is False).
 """
 
-from __future__ import annotations
+# from __future__ import annotations
 
 import os
 import re

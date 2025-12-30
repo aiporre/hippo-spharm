@@ -42,17 +42,16 @@ subject_id="FS_${base_name}"
 subject_id=$(echo "$subject_id" | tr -cd '[:alnum:]_')
 # check if SUBJECTS_DIR exists, if so, then remove it
 if [ -d "$SUBJECTS_DIR/$subject_id" ]; then
-  echo "Removing existing FreeSurfer subject directory $SUBJECTS_DIR/$subject_id"
-  reconall_out_dir="$SUBJECTS_DIR/$subject_id"
-  rm -rf "{$reconall_out_dir:?}"
+  echo "Existing FreeSurfer subject directory  continue $SUBJECTS_DIR/$subject_id"
+  recon-all -s "$subject_id" -all
 else
   echo "Creating FreeSurfer subject directory $SUBJECTS_DIR/$subject_id"
+  recon-all -i "$input_nii" -s "$subject_id" -all
 fi
 # run command reconall
-recon-all -i "$input_nii" -s "$subject_id" -all
 # extract hippocampus masks 17 and 53 and join into one file
 fs_mask_dir="$SUBJECTS_DIR/$subject_id/mri"
-aseg_file="$fs_mask_dir/aseg.mgz"
+aseg_file="aseg.mgz"
 if [ ! -f "$aseg_file" ]; then
   echo "aseg.mgz file not found in $fs_mask_dir"
   exit 1

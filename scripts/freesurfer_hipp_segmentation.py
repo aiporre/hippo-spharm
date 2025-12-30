@@ -31,7 +31,7 @@ class FreeSurferSegmentationError(RuntimeError):
     pass
 
 
-def _run(cmd: list[str], cwd: Optional[str] = None, dry_run: bool = False) -> subprocess.CompletedProcess:
+def _run(cmd, cwd = None, dry_run: bool = False):
     """Run a command using subprocess.run, raising on non-zero exit unless dry_run.
 
     Returns the CompletedProcess when executed; in dry_run mode it only prints the command

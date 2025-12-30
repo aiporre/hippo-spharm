@@ -50,14 +50,11 @@ def _run(cmd: list[str], cwd: Optional[str] = None, dry_run: bool = False) -> su
         print(f"Command failed: {cmd_str}\nstdout:\n{e.stdout}\nstderr:\n{e.stderr}")
         raise FreeSurferSegmentationError(f"Command failed: {cmd_str}") from e
 
+import shlex
 
 def shlex_quote(s: str) -> str:
     """Simple quote for printing commands (does not affect execution)."""
-    # Use repr-like quoting but more readable
-    if re.match(r"^[A-Za-z0-9_./=-]+$", s):
-        return s
-    return f"'{s.replace("'", "'\\''")}'"
-
+    return shlex.quote(s)
 
 def freesurfer_hipp_segmentation(input_image: str, output_hippo: str, run_cmds: bool = True) -> str:
     """Perform hippocampal segmentation using FreeSurfer commands.

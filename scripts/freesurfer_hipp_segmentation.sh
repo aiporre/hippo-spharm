@@ -43,7 +43,14 @@ subject_id=$(echo "$subject_id" | tr -cd '[:alnum:]_')
 # check if SUBJECTS_DIR exists, if so, then remove it
 if [ -d "$SUBJECTS_DIR/$subject_id" ]; then
   echo "Existing FreeSurfer subject directory  continue $SUBJECTS_DIR/$subject_id"
-  recon-all -s "$subject_id" -all
+  fs_mask_dir="$SUBJECTS_DIR/$subject_id/mri"
+  aseg_dir="$fs_mask_dir/aseg.mgz"
+  if [ ! -f "$aseg_dir" ]; then
+    echo "aseg.mgz file not found in $fs_mask_dir, continue recon-all"
+    recon-all -s "$subject_id" -all
+  else
+    echo "aseg.mgz file found in $fs_mask_dir, skipping recon-all"
+  fi
 else
   echo "Creating FreeSurfer subject directory $SUBJECTS_DIR/$subject_id"
   recon-all -i "$input_nii" -s "$subject_id" -all

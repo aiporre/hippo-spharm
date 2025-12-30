@@ -44,7 +44,7 @@ def _run(cmd, cwd = None, dry_run: bool = False):
         cp = subprocess.CompletedProcess(cmd, 0)
         return cp
     try:
-        cp = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, text=True)
+        cp = subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, universal_newlines=True)
         return cp
     except subprocess.CalledProcessError as e:
         print(f"Command failed: {cmd_str}\nstdout:\n{e.stdout}\nstderr:\n{e.stderr}")

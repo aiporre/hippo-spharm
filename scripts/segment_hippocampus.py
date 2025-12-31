@@ -3,12 +3,11 @@ import sys
 import multiprocessing
 import tqdm
 import time
-from hippmapper.cli import main
-import subprocess
+# import subprocess
 import argparse
 from filelock import FileLock
 from random import shuffle
-
+from hippospharm.freesurfer_hipp_segmentation import  free_surfer_hipp_segmentation
 # arg
 parser = argparse.ArgumentParser(description='hipp segmentation')
 parser.add_argument('dataset_path', type=str, help='dataset path')
@@ -178,18 +177,20 @@ def execute_command(c):
             f.write('')
         if c[0] == 'seg_hipp':
             print(f'Running hippocampus segmentation with HippMapp3r for {f_out}')
+            from hippmapper.cli import main
             main(c)
         elif c[0] == 'bash':
             print(f'Running hippocampus segmentation with FreeSurfer for {f_out}')
-            # run bash with subprocessA
-            command_out = subprocess.run(c, 
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True)
-            print(command_out.stdout)
-            if command_out.returncode != 0:
-                print(f"Error running command: {' '.join(c)}")
-                print(command_out.stderr)
+            # # run bash with subprocessA
+            # command_out = subprocess.run(c,
+            #     stdout=subprocess.PIPE,
+            #     stderr=subprocess.PIPE,
+            #     universal_newlines=True)
+            # print(command_out.stdout)
+            # if command_out.returncode != 0:
+            #     print(f"Error running command: {' '.join(c)}")
+            #     print(command_out.stderr)
+            free_surfer_hipp_segmentation(c[2], c[3])
         else:
             print(f'Unknown command {c[0]}')
         print(f'file out generated {f_out}')
@@ -214,18 +215,20 @@ def execute_command_multiprocessing(c):
             f.write('')
         if c[0] == 'seg_hipp':
             print(f'Running hippocampus segmentation with HippMapp3r for {f_out}')
+            from hippmapper.cli import main
             main(c)
         elif c[0] == 'bash':
             print(f'Running hippocampus segmentation with FreeSurfer for {f_out}')
             # run bash with subprocess
-            command_out = subprocess.run(c, 
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True)
-            print(command_out.stdout)
-            if command_out.returncode != 0:
-                print(f"Error running command: {' '.join(c)}")
-                print(command_out.stderr)
+            # command_out = subprocess.run(c,
+            #     stdout=subprocess.PIPE,
+            #     stderr=subprocess.PIPE,
+            #     universal_newlines=True)
+            # print(command_out.stdout)
+            # if command_out.returncode != 0:
+            #     print(f"Error running command: {' '.join(c)}")
+            #     print(command_out.stderr)
+            free_surfer_hipp_segmentation(c[2], c[3])
         else:
             print(f'Unknown command {c}')
 

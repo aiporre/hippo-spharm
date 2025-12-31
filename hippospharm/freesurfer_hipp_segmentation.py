@@ -27,7 +27,9 @@ def free_surfer_hipp_segmentation(input_file, output_file):
     recon.inputs.subject_id = subject_id
     recon.inputs.directive = 'all'
     recon.inputs.T1_files = input_file
+    print('recon all start', recon.cmdline)
     result = recon.run()
+    print('recon al ended',  result)
     # read and compose 1 2 hippocampal segmentation
     fs_mask_path = os.path.join(SUBJECTS_DIR, subject_id, 'mri', 'aseg.mgz')
     fs_mask = nb.load(fs_mask_path)

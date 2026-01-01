@@ -190,7 +190,11 @@ def execute_command(c):
             # if command_out.returncode != 0:
             #     print(f"Error running command: {' '.join(c)}")
             #     print(command_out.stderr)
-            free_surfer_hipp_segmentation(c[2], c[3])
+            freesurfer_subject_dir = os.path.join(dataset_path, 'freesurfer_subjects')
+            os.environ['SUBJECTS_DIR'] = freesurfer_subject_dir
+            if not os.path.exists(freesurfer_subject_dir):
+                os.makedirs(freesurfer_subject_dir)
+            free_surfer_hipp_segmentation(c[2], c[3], freesurfer_subject_dir)
         else:
             print(f'Unknown command {c[0]}')
         print(f'file out generated {f_out}')

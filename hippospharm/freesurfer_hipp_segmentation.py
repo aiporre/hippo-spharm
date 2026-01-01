@@ -1,9 +1,11 @@
 import os
+import time
+
 from nipype.interfaces.freesurfer import ReconAll
 import nibabel as nb
 import shutil
 
-def free_surfer_hipp_segmentation(input_file, output_file):
+def free_surfer_hipp_segmentation(input_file, output_file, freesurfer_subjects_dir):
     # check if input directory exists
     if not os.path.exists(input_file):
         raise FileNotFoundError(f"Input directory {input_file} does not exist.")
@@ -16,22 +18,23 @@ def free_surfer_hipp_segmentation(input_file, output_file):
     subject_id = f"FS_{base_name}"
     # make subject_id alfanumeric
     subject_id = ''.join(e for e in subject_id if e.isalnum() or e == '_')
-    SUBJECTS_DIR = os.path.dirname(input_file)
-    print(f"Using SUBJECTS_DIR: {SUBJECTS_DIR}")
-    os.environ['SUBJECTS_DIR'] = SUBJECTS_DIR
-    if os.path.exists(os.path.join(SUBJECTS_DIR, subject_id)):
+    print(f"Using SUBJECTS_DIR: {freesurfer_subjects_dir}")
+    if os.path.exists(os.path.join(freesurfer_subjects_dir, subject_id)):
         # remove existing directory
-        shutil.rmtree(os.path.join(SUBJECTS_DIR, subject_id))
+        print('Removing existing FreeSurfer subject directory to avoid rerun problems.')
+        shutil.rmtree(os.path.join(freesurfer_subjects_dir, subject_id))
     # run freesurfer recon-all with hippocampal segmentation
     recon = ReconAll()
     recon.inputs.subject_id = subject_id
     recon.inputs.directive = 'all'
     recon.inputs.T1_files = input_file
+    recon.input.subjects_dir = freesurfer_subjects_dir
     print('recon all start', recon.cmdline)
+    t = time.time()
     result = recon.run()
-    print('recon al ended',  result)
+    print('recon all ended',  result, time.time() - t)
     # read and compose 1 2 hippocampal segmentation
-    fs_mask_path = os.path.join(SUBJECTS_DIR, subject_id, 'mri', 'aseg.mgz')
+    fs_mask_path = os.path.join(freesurfer_subjects_dir, subject_id, 'mri', 'aseg.mgz')
     fs_mask = nb.load(fs_mask_path)
     fs_data = fs_mask.get_fdata()
     left_hipp = (fs_data == 17).astype(int)

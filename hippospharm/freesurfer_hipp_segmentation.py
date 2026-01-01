@@ -28,7 +28,7 @@ def free_surfer_hipp_segmentation(input_file, output_file, freesurfer_subjects_d
     recon.inputs.subject_id = subject_id
     recon.inputs.directive = 'all'
     recon.inputs.T1_files = input_file
-    recon.input.subjects_dir = freesurfer_subjects_dir
+    recon.inputs.subjects_dir = freesurfer_subjects_dir
     print('recon all start', recon.cmdline)
     t = time.time()
     result = recon.run()

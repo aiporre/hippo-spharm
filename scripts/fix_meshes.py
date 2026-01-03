@@ -18,6 +18,7 @@ parser.add_argument('--keep-dirs', action='store_true', help='keeps the file hie
 parser.add_argument('--suffix', '-s', type=str, default='.obj', help='Suffix of the mesh files to fix, default is .obj')
 parser.add_argument("--plus", action='store_true', help='Use the remeshing binary in plus mode')
 parser.add_argument("-t", "--tolerance", type=int, default=10, help="Tolerance for number of vertices difference")
+parser.add_argument("--overwrite", action='store_true', help="Replace existing fixed meshes")
 
 args = parser.parse_args()
 datapath = args.datapath
@@ -32,6 +33,7 @@ tolerance = args.tolerance
 print(datapath)
 models_path = os.path.join(datapath, 'models')
 fix_path = os.path.join(datapath, 'fixmodels')
+overwrite = args.overwrite
 
 # collect all obj files in models path
 if keep_dirs:
@@ -62,6 +64,16 @@ else:
 print('--------------------')
 print('processing....')
 # create list of commands
+# remove already fixed files if overwrite is False
+if not overwrite:
+    files_to_process = []
+    for f in files:
+        fixed_file_path = os.path.join(fix_path, f) if keep_dirs else os.path.join(fix_path, os.path.basename(f))
+        if not os.path.exists(fixed_file_path):
+            files_to_process.append(f)
+        else:
+            print(f"Fixed file {fixed_file_path} already exists, skipping.")
+    files = files_to_process
 # shuffle files
 random.shuffle(files)
 
@@ -73,7 +85,6 @@ for i, f in enumerate(tqdm(files)):
     print('---->> mesh_file', input_mesh_path)
     # make lock file
     lock_file = os.path.join(fix_path, os.path.basename(f) + '.lock')
-    #
     if os.path.exists(lock_file):
         print(f"Lock file {lock_file} exists, skipping {f}")
         continue
@@ -116,6 +127,7 @@ for i, f in enumerate(tqdm(files)):
         print('running command', command)
         command_out = subprocess.run(command, capture_output=True, text=True)
         print(command_out.stdout)
+        # TODO: CLEAN UP TEMP FILES
         if command_out.returncode != 0:
             print(f"Failed to remesh {f} with blender. Error: {command_out.stderr}")
             continue

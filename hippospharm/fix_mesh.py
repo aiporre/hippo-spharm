@@ -115,7 +115,7 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
     more_faces = 0
     smooth_iteration = 5
 
-    while not no_holes or attempts <= 10:
+    while not no_holes or attempts <= 20:
         print('simplifiying mesh', target_faces, aggressivity, attempts)
         # run quadric decimation
         if attempts>5:
@@ -151,13 +151,14 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
             print(f"Fixing them.. filling holes")
             trimesh.repair.fill_holes(resampled_mesh)
             # resampled_mesh = trimesh.smoothing.filter_laplacian(resampled_mesh, iterations=10)
+            broken_faces = trimesh.repair.broken_faces(resampled_mesh)
             print(f"Number of {broken_faces} broken faces in the mesh after filling holes?")
 
         broken_faces = trimesh.repair.broken_faces(resampled_mesh)
         if len(broken_faces) == 0 and within_range(resampled_mesh.vertices.shape[0]):
             print('no holes and correct number of vertices (', resampled_mesh.vertices.shape[0],')')
             no_holes = True
-            attempts = 11
+            attempts = 21
             resampled_mesh.export(output_filename)
             print('numer of versitce', resampled_mesh.vertices.shape[0])
             print('nmber of faces', resampled_mesh.faces.shape[0])

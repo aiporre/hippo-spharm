@@ -167,9 +167,9 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
             print(f'current number of vertices: {resampled_mesh.vertices.shape[0]}')
             print(f"After all Found {broken_faces} broken faces in the mesh. Retrying.., with agresivity {aggressivity}")
         attempts = attempts + 1
-        if attempts > 11:
+        if attempts > 20:
             if not no_holes:
-                print('To many wholes! attemp is more that 11')
+                print('To many wholes! attemp is more that 20')
                 raise ValueError(f"failed to fix mesh {mesh_filename}")
             break
 

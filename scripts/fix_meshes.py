@@ -64,16 +64,16 @@ else:
 print('--------------------')
 print('processing....')
 # create list of commands
-# remove already fixed files if overwrite is False
-if not overwrite:
-    files_to_process = []
-    for f in files:
-        fixed_file_path = os.path.join(fix_path, f) if keep_dirs else os.path.join(fix_path, os.path.basename(f))
-        if not os.path.exists(fixed_file_path):
-            files_to_process.append(f)
-        else:
-            print(f"Fixed file {fixed_file_path} already exists, skipping.")
-    files = files_to_process
+# # remove already fixed files if overwrite is False
+# if not overwrite:
+#     files_to_process = []
+#     for f in files:
+#         fixed_file_path = os.path.join(fix_path, f) if keep_dirs else os.path.join(fix_path, os.path.basename(f))
+#         if not os.path.exists(fixed_file_path):
+#             files_to_process.append(f)
+#         else:
+#             print(f"Fixed file {fixed_file_path} already exists, skipping.")
+#     files = files_to_process
 # shuffle files
 random.shuffle(files)
 
@@ -81,6 +81,10 @@ for i, f in enumerate(tqdm(files)):
     print(f'{i} : {f}')
     # create a mesh object
     input_mesh_path = os.path.join(models_path, f)
+    output_mesh_path = os.path.join(fix_path, f)
+    if not overwrite and os.path.exists(output_mesh_path):
+        print(f"Fixed file {output_mesh_path} already exists, skipping.")
+        continue
     print('---->> model path', models_path)
     print('---->> mesh_file', input_mesh_path)
     # make lock file

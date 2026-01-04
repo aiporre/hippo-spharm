@@ -2,6 +2,7 @@ import os
 import subprocess
 import trimesh
 import numpy as np
+from trimesh.graph import neighbors
 
 
 def quadric_decimation_garland(resampled_mesh, target_vertices):
@@ -37,6 +38,59 @@ def mesh_fix(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
     # smooth the mesh
     return fixed_mesh
 
+def add_vertices_by_edge_split(mesh: trimesh.Trimesh, target_vertices:int) -> trimesh.Trimesh:
+
+    """
+    Adds vertices to the mesh by splitting edges until the target number of vertices is reached.
+    :param mesh:
+    :param target_vertices:
+    :return:
+    """
+
+    num_v_current = mesh.vertices.shape[0]
+    to_add = target_vertices - num_v_current
+    if to_add <= 0:
+        print('no need to add vertices, mesh already has more than target vertices')
+        return mesh
+    print(f'adding {to_add} vertices to the mesh by edge split')
+    # copy
+    mesh = mesh.copy()
+    for i in range(to_add):
+        # get longest edge
+        edges = mesh.edges_unique
+        edge_lengths = mesh.edges_unique_length
+        longest_edge_index = np.argmax(edge_lengths)
+        longest_edge = edges[longest_edge_index]
+        v1 = mesh.vertices[longest_edge[0]]
+        v2 = mesh.vertices[longest_edge[1]]
+        v1_idx, v2_idx = longest_edge[0], longest_edge[1]
+        # compute midpoint
+        midpoint = (v1 + v2) / 2
+        # add vertex
+        new_vertex_index = len(mesh.vertices)
+        mesh.vertices = np.vstack([mesh.vertices, midpoint])
+        # find faces that contain the edge
+        faces_to_update = []
+        for face_index, face in enumerate(mesh.faces):
+            if longest_edge[0] in face and longest_edge[1] in face:
+                faces_to_update.append(face_index)
+        # update faces
+        for face_index in faces_to_update:
+            face = mesh.faces[face_index]
+            # faces that are not the edge
+            adjacent_vertex = [v for v in face if v not in [v1_idx, v2_idx]]
+            # create two new faces
+            face1 = [v1_idx, new_vertex_index, adjacent_vertex[0]]
+            face2 = [new_vertex_index, v2_idx, adjacent_vertex[0]]
+            # replace the old face with the two new faces
+            mesh.faces[face_index] = face1
+            mesh.faces = np.vstack([mesh.faces, face2])
+        # update mesh
+        mesh.merge_vertices()
+        mesh.remove_degenerate_faces()
+        print(f'added vertex {i+1}/{to_add}')
+    print('finished adding vertices, new number of vertices:', mesh.vertices.shape[0])
+    return mesh
 
 
 def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffix='.obj', tolerance_num_vertices=10, plus=False, use_mesh_fix=True) -> trimesh.Trimesh:
@@ -183,7 +237,7 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
                 # apply quadratic decimation again to reach target vertices
                 if not within_range(resampled_mesh.vertices.shape[0]) and len(broken_faces) == 0:
                     print('run garland quadric decimation afet mesh fix to reach target vertices, with no broken faces')
-                    resampled_mesh = quadric_decimation_garland(resampled_mesh, target_vertices)
+                    resampled_mesh = add_vertices_by_edge_split(resampled_mesh, target_vertices)
                     print('number of vertices after garland quadric from mesh fix:', resampled_mesh.vertices.shape[0])
                     bf = trimesh.repair.broken_faces(resampled_mesh)
                     print('..and number of broken faces after garland quadric decimation from mesh fix :', bf, ' number of broken faces', len(bf))

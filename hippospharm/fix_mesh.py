@@ -49,7 +49,7 @@ def add_vertices_by_edge_split(mesh: trimesh.Trimesh, target_vertices:int) -> tr
 
     num_v_current = mesh.vertices.shape[0]
     to_add = target_vertices - num_v_current
-    if to_add <= 0:
+    if to_add <= 0 and to_add < 50:
         print('no need to add vertices, mesh already has more than target vertices')
         return mesh
     print(f'adding {to_add} vertices to the mesh by edge split')

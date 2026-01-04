@@ -179,9 +179,10 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
             if use_mesh_fix:
                 print("Using pymeshfix to further fix the mesh")
                 resampled_mesh = mesh_fix(resampled_mesh)
+                broken_faces = trimesh.repair.broken_faces(resampled_mesh)
                 # apply quadratic decimation again to reach target vertices
-                if not within_range(resampled_mesh.vertices.shape[0]):
-                    print('run garland quadric decimation afet mesh fix to reach target vertices')
+                if not within_range(resampled_mesh.vertices.shape[0]) and len(broken_faces) == 0:
+                    print('run garland quadric decimation afet mesh fix to reach target vertices, with no broken faces')
                     resampled_mesh = quadric_decimation_garland(resampled_mesh, target_vertices)
                     print('number of vertices after garland quadric from mesh fix:', resampled_mesh.vertices.shape[0])
                     bf = trimesh.repair.broken_faces(resampled_mesh)

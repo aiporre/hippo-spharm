@@ -32,7 +32,7 @@ def mesh_fix(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
     """
     import pymeshfix
     meshfix = pymeshfix.MeshFix(mesh.vertices, mesh.faces)
-    meshfix.repair(verbose=True)
+    meshfix.repair(verbose=False)
     # make a trimesh object
     fixed_mesh = trimesh.Trimesh(vertices=meshfix.v, faces=meshfix.f, process=False)
     # smooth the mesh

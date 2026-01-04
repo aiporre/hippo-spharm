@@ -15,8 +15,31 @@ def quadric_decimation_garland(resampled_mesh, target_vertices):
     print('number of vertices after garland quadric decimation:', resampled_mesh.vertices.shape[0])
     return resampled_mesh
 
+def mesh_fix(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
+    """
+    Fixes mesh holes and smooths the mesh using Laplacian smoothing.
 
-def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffix='.obj', tolerance_num_vertices=10, plus=False) -> trimesh.Trimesh:
+    Parameters
+    ----------
+    mesh: trimesh.Trimesh
+        The input mesh to be processed.
+
+    Returns
+    -------
+    trimesh.Trimesh:
+        The processed mesh.
+    """
+    import pymeshfix
+    meshfix = pymeshfix.MeshFix(mesh.vertices, mesh.faces)
+    meshfix.repair(verbose=True)
+    # make a trimesh object
+    fixed_mesh = trimesh.Trimesh(vertices=meshfix.v, faces=meshfix.f, process=False)
+    # smooth the mesh
+    return fixed_mesh
+
+
+
+def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffix='.obj', tolerance_num_vertices=10, plus=False, use_mesh_fix=True) -> trimesh.Trimesh:
     """
     Fixes mesh holes, smooths the mesh using Laplacian smoothing, and resamples it to the target number of vertices.
 
@@ -77,6 +100,9 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
     if len(broken_faces) > 0:
         print("Fixing them.. filling holes")
         trimesh.repair.fill_holes(mesh)
+        if use_mesh_fix:
+            print("Using pymeshfix to further fix the mesh")
+            mesh = mesh_fix(mesh)
         broken_faces = trimesh.repair.broken_faces(mesh)
         print(f"Number of broken triangles after filling holes {broken_faces}.")
     # if still broken faces just load the original mesh
@@ -150,6 +176,9 @@ def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffi
         if len(broken_faces) > 0:
             print(f"Fixing them.. filling holes")
             trimesh.repair.fill_holes(resampled_mesh)
+            if use_mesh_fix:
+                print("Using pymeshfix to further fix the mesh")
+                resampled_mesh = mesh_fix(resampled_mesh)
             # resampled_mesh = trimesh.smoothing.filter_laplacian(resampled_mesh, iterations=10)
             broken_faces = trimesh.repair.broken_faces(resampled_mesh)
             print(f"Number of {broken_faces} broken faces in the mesh after filling holes?")

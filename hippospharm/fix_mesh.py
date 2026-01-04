@@ -87,7 +87,7 @@ def add_vertices_by_edge_split(mesh: trimesh.Trimesh, target_vertices:int) -> tr
             mesh.faces = np.vstack([mesh.faces, face2])
         # update mesh
         mesh.merge_vertices()
-        mesh.remove_degenerate_faces()
+        mesh.update_faces(mesh.nondegenerate_faces(height=None))
         print(f'added vertex {i+1}/{to_add}')
     print('finished adding vertices, new number of vertices:', mesh.vertices.shape[0])
     return mesh

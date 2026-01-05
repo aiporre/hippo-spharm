@@ -96,7 +96,7 @@ def add_vertices_by_edge_split(mesh: trimesh.Trimesh, target_vertices:int) -> tr
     return mesh
 
 
-def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffix='.obj', tolerance_num_vertices=10, plus=False, use_mesh_fix=True) -> trimesh.Trimesh:
+def fix_mesh(mesh_filename:str, target_vertices:int=6890, remesh_bin=None, suffix='.obj', tolerance_num_vertices=10, plus=True, use_mesh_fix=False) -> trimesh.Trimesh:
     """
     Fixes mesh holes, smooths the mesh using Laplacian smoothing, and resamples it to the target number of vertices.
 

@@ -128,7 +128,7 @@ for i, f in enumerate(tqdm(files)):
         command = ['blender', '--background', '--python-exit-code', '1', '--python', 'scripts/remesh_blender.py',
                   '--', temp_file, temp_outfile, str(target_vertices) ]
         # runinng command
-        print('running command', command)
+        print(f"running command {command}")
         command_out = subprocess.run(command, capture_output=True, text=True)
         print(command_out.stdout)
         # TODO: CLEAN UP TEMP FILES
@@ -136,7 +136,23 @@ for i, f in enumerate(tqdm(files)):
             print(f"Failed to remesh {f} with blender. Error: {command_out.stderr}")
             continue
         mesh = trimesh.load(temp_outfile)
-        print('New number of vertices after blender remesh:', mesh.vertices.shape[0])
+        print(f"New number of vertices after blender remesh: {mesh.vertices.shape[0]}")
+        # fix the mesh
+        if is_skip_fails:
+            try:
+                mesh = fix_mesh(temp_outfile, target_vertices=target_vertices, remesh_bin=mesh_bin, plus=plus)
+            except Exception as e:
+                print(e)
+                print(f"Failed to fix {f}")
+                continue
+
+        if mesh.vertices.shape[0] != target_vertices:
+            print(f"Warning: after blender remesh, number of vertices {mesh.vertices.shape[0]} does not match target {target_vertices}")
+            # remove temp files
+            os.remove(temp_file)
+            os.remove(temp_outfile)
+            os.remove(lock_file)
+            continue
 
     # save the mesh
     if keep_dirs:

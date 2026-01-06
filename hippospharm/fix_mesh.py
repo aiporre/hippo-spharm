@@ -50,6 +50,9 @@ def mesh_fix(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
 
     print("INFO fixmesh.py:Running pymeshfix.MeshFix on mesh with %d vertices and %d faces" %
           (mesh.vertices.shape[0], mesh.faces.shape[0]))
+    if mesh.vertices.shape[0] > 35000:
+        print("WARN: too many vertices this will kill the process, skipping pymeshfix")
+        return mesh
     meshfix = pymeshfix.MeshFix(mesh.vertices, mesh.faces)
     meshfix.repair(verbose=False)
     fixed_mesh = trimesh.Trimesh(vertices=meshfix.v, faces=meshfix.f, process=False)
@@ -111,7 +114,7 @@ def add_vertices_by_edge_split(mesh: trimesh.Trimesh, target_vertices: int) -> t
 
 
 def fix_mesh(mesh_filename: str, target_vertices: int = 6890, remesh_bin=None, suffix='.obj',
-             tolerance_num_vertices=10, plus=False, use_mesh_fix=True) -> trimesh.Trimesh:
+             tolerance_num_vertices=10, plus=False, use_mesh_fix=True, prefix=False) -> trimesh.Trimesh:
     """
     Fixes mesh holes, smooths the mesh using Laplacian smoothing, and resamples it to the target number of vertices.
 
@@ -154,7 +157,7 @@ def fix_mesh(mesh_filename: str, target_vertices: int = 6890, remesh_bin=None, s
         return original_mesh
 
     # filling and fixing before remeshing
-    if num_broken > 0:
+    if num_broken > 0 and prefix:
         print("INFO fixmesh.py:Filling holes in original mesh before remeshing.")
         # trimesh.repair.fill_holes(original_mesh)
         if use_mesh_fix:
@@ -279,7 +282,8 @@ def fix_mesh(mesh_filename: str, target_vertices: int = 6890, remesh_bin=None, s
                         print("DEBUG fixmesh.py:Broken faces after edge split: %d" % len(bf))
                 broken_faces = trimesh.repair.broken_faces(resampled_mesh)
                 print("INFO fixmesh.py:Broken faces after hole filling/fixing: %s" % broken_faces)
-
+            # fix normals
+            trimesh.repair.fix_normals(resampled_mesh)
             broken_faces = trimesh.repair.broken_faces(resampled_mesh)
             if len(broken_faces) == 0 and within_range(resampled_mesh.vertices.shape[0]):
                 print("INFO fixmesh.py:Mesh fixed: no holes and within vertex tolerance (vertices=%d, faces=%d)." % (
@@ -297,5 +301,5 @@ def fix_mesh(mesh_filename: str, target_vertices: int = 6890, remesh_bin=None, s
                     print("ERROR fixmesh.py: Exceeded maximum attempts (%d) attempting to fix mesh: %s" % (attempts, mesh_filename))
                     raise ValueError(f"failed to fix mesh {mesh_filename}")
                 break
-
+    # fix normals
     return resampled_mesh

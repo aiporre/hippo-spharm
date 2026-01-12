@@ -20,7 +20,7 @@ def quadric_decimation_garland(resampled_mesh, target_vertices):
         # this will not work
         print("WARN fixmesh.py:Current vertices (%d) less than target (%d). Skipping Garland decimation." % (positions.shape[0], target_vertices))
         print("INFO fixmesh.py: adding vertices by edge split")
-        add_vertices_by_edge_split(mesh=resampled_mesh, target_vertices=target_vertices)
+        resampled_mesh = add_vertices_by_edge_split(mesh=resampled_mesh, target_vertices=target_vertices)
         return resampled_mesh
     new_positions, new_face = simplify_mesh(positions, face, target_vertices)
     resampled_mesh = trimesh.Trimesh(vertices=new_positions, faces=new_face, process=False)

@@ -65,15 +65,15 @@ print('--------------------')
 print('processing....')
 # create list of commands
 # # remove already fixed files if overwrite is False
-# if not overwrite:
-#     files_to_process = []
-#     for f in files:
-#         fixed_file_path = os.path.join(fix_path, f) if keep_dirs else os.path.join(fix_path, os.path.basename(f))
-#         if not os.path.exists(fixed_file_path):
-#             files_to_process.append(f)
-#         else:
-#             print(f"Fixed file {fixed_file_path} already exists, skipping.")
-#     files = files_to_process
+if not overwrite:
+    files_to_process = []
+    for f in files:
+        fixed_file_path = os.path.join(fix_path, f) if keep_dirs else os.path.join(fix_path, os.path.basename(f))
+        if not os.path.exists(fixed_file_path):
+            files_to_process.append(f)
+        else:
+            print(f"Fixed file {fixed_file_path} already exists, skipping.")
+    files = files_to_process
 # shuffle files
 random.shuffle(files)
 

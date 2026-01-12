@@ -34,6 +34,8 @@ if target_type not in ['brain', 'corrected', 'reoriented', 'mni', 't1w']:
 if processes == -1:
     processes = PROCESSES
     print('Using PROCESSES =', processes, ' out of ', multiprocessing.cpu_count(), ' cores available')
+else:
+    print('Using processes =', processes, ' out of ', multiprocessing.cpu_count(), ' cores available')
 
 # assert last argument is a directory
 if not os.path.isdir(dataset_path):
@@ -156,7 +158,11 @@ for f_in, f_out in zip(files_input, files_hipp):
         if tool == "hippmapper":
             commands.append(['seg_hipp', '-t1', f_in, '-o', f_out])
         elif tool == "freesurfer":
-            commands.append(['bash', './scripts/freesurfer_hipp_segmentation.sh', f_in, f_out])
+            if PROCESSES>1:
+                freesurfer_subject_dir = os.path.join(dataset_path, 'freesurfer_subjects')
+                commands.append(['bash', freesurfer_subject_dir, './scripts/freesurfer_hipp_segmentation.sh', f_in, f_out])
+            else:
+                commands.append(['bash', './scripts/freesurfer_hipp_segmentation.sh', f_in, f_out])
 print(' we have ', len(commands), 'commands to run')
 print(' number of files was ', len(files_input))
 print('shuffle commands')
@@ -232,7 +238,11 @@ def execute_command_multiprocessing(c):
             # if command_out.returncode != 0:
             #     print(f"Error running command: {' '.join(c)}")
             #     print(command_out.stderr)
-            free_surfer_hipp_segmentation(c[2], c[3])
+            freesurfer_subject_dir = c[1]
+            os.environ['SUBJECTS_DIR'] = freesurfer_subject_dir
+            if not os.path.exists(freesurfer_subject_dir):
+                os.makedirs(freesurfer_subject_dir)
+            free_surfer_hipp_segmentation(c[3], c[4], freesurfer_subject_dir)
         else:
             print(f'Unknown command {c}')
 

@@ -105,7 +105,8 @@ else:
 
 failed_list = []
 reason = []
-values = zip(files_corrected, files_hipp, subs) if not is_find_sessions else zip(files_corrected, files_hipp, [1]*len(files_corrected))
+# Make values a concrete list and use the correct variable name files_hip
+values = list(zip(files_corrected, files_hip, subs)) if not is_find_sessions else list(zip(files_corrected, files_hip, [1]*len(files_corrected)))
 # filter files that have already been processed
 if not args.overwrite:
     values_filtered = []

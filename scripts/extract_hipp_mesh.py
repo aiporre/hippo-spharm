@@ -4,7 +4,7 @@ import argparse
 import os
 from random import shuffle
 import pandas as pd
-import sys
+import sys, traceback
 
 from hippospharm.segmentation import BrainImage, Mesh
 import tqdm
@@ -156,6 +156,7 @@ for filename, mask_file, sub in tqdm.tqdm(values, desc='loading images', total=l
         # EXTRACT THE HIPPOCAMPUS as mesh
         # create a BrainImage object
         brain_image = BrainImage(filename, mask_file=mask_file)
+        print('...>', brain_image, " brain iamge created")
         spacing = brain_image.get_spacing()
 
         # create a list of right hippocampus
@@ -178,6 +179,7 @@ for filename, mask_file, sub in tqdm.tqdm(values, desc='loading images', total=l
         if not os.path.exists(model_name_prefix + '_right.obj') or args.overwrite:
             surface.save(model_name_prefix + '_right.obj')
         # create a list of left hippocampus
+        print('geting hipocampleft')
         left_hipp = brain_image.get_hippocampus('left')
         V_l, F_l = left_hipp.get_isosurface(value=0.5, presample=1, show=False, method='marching_cubes', N=500, spacing=spacing, as_surface=False, make_isotropic=activate_isotropic)
         surface = Mesh(V_l, F_l)
@@ -187,6 +189,9 @@ for filename, mask_file, sub in tqdm.tqdm(values, desc='loading images', total=l
     except Exception as e:
         print(f'Failed to process {filename}')
         print(f'Error: {e}')
+        print("-"*60)
+        traceback.print_exc(file=sys.stdout)
+        print("-"*60)
         failed_list.append(filename)
         reason.append(str(e))
     # remove the lock file

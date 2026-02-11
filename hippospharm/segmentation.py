@@ -25,6 +25,73 @@ def resample_volume(presample, volume):
     volume = interpolator((Xp, Yp, Zp))
     return volume
 
+def make_volume_isotropic(volume,
+                          current_spacing,
+                          iso_spacing=(1.0, 1.0, 1.0),
+                          interpolator=sitk.sitkLinear,
+                          default_value=0.0,
+                          output_pixel_type=None,
+                          is_mask=False):
+    """
+    Resample a 3D numpy volume to (approximately) isotropic spacing using SimpleITK.
+
+    Parameters
+    ----------
+    volume : ndarray (Z, Y, X)
+    current_spacing : iterable (sx, sy, sz) in physiscal units (x, y, z)
+    iso_spacing : iterable (sx, sy, sz), default (1,1,1)
+    interpolator : simpleitk interpolator enum, default sitkLinear
+    default_value : float, default 0.0
+    output_pixel_type : for example  sitk.sitkFloat32. Default is None, which means the same as input.
+
+    Returns
+    -------
+    resampled_volume : ndarray (Z, Y, X)
+    """
+    vol = np.asarray(volume)
+    if vol.ndim != 3:
+        # is my volume 3D?
+        raise ValueError(f"Expected a 3D volume (Z,Y,X), got shape {vol.shape}")
+
+    image = sitk.GetImageFromArray(vol)
+
+    current_spacing = np.asarray(current_spacing, dtype=float)  # (sx, sy, sz) == (x,y,z)
+    iso_spacing = np.asarray(iso_spacing, dtype=float)
+
+    if current_spacing.shape != (3,) or iso_spacing.shape != (3,):
+        raise ValueError("current_spacing and iso_spacing must be length-3 iterables (sx, sy, sz).")
+    if np.any(current_spacing <= 0) or np.any(iso_spacing <= 0):
+        raise ValueError("Spacings must be positive.")
+
+    image.SetSpacing(tuple(current_spacing.tolist()))
+
+    # Compute new size to preserve physical extent:
+    # new_size[i] = round(old_size[i] * old_spacing[i] / new_spacing[i])
+    old_size = np.array(list(image.GetSize()), dtype=float)        # (x,y,z)
+    old_spacing = np.array(list(image.GetSpacing()), dtype=float)  # (x,y,z)
+
+    new_size = np.round(old_size * (old_spacing / iso_spacing)).astype(int)
+    # print(new_size)
+    new_size = np.maximum(new_size, 1)  # avoid zeros
+
+    resampler = sitk.ResampleImageFilter()
+    resampler.SetReferenceImage(image)  # copies origin/direction by default
+    resampler.SetOutputSpacing(tuple(iso_spacing.tolist()))
+    resampler.SetSize([int(x) for x in new_size.tolist()])
+    resampler.SetInterpolator(interpolator)
+    resampler.SetDefaultPixelValue(float(default_value))
+
+    if output_pixel_type is not None:
+        resampler.SetOutputPixelType(output_pixel_type)
+
+    resampled = resampler.Execute(image)
+    # make sure the resampled is 0 to 1
+    if is_mask:
+        resampled = sitk.BinaryThreshold(resampled, lowerThreshold=0.5, upperThreshold=1.0, insideValue=1, outsideValue=0)
+    return sitk.GetArrayFromImage(resampled)
+
+
+
 
 class Image:
     def __init__(self, data=None, filename=None):
@@ -152,7 +219,7 @@ class Image:
             plt.show()
 
     def get_isosurface(self, value=0.5, show=False, method='marching_cubes', spacing=(1, 1, 1), N=None, presample=None,
-                       crop=True, as_surface=True):
+                       crop=True, as_surface=True, make_isotropic=False, iso_spacing=(1.0, 1.0, 1.0)):
         assert method in ['marching_cubes', 'boundary'], 'method must be marching_cubes or boundary'
         volume = self.image
         # crop around the volume
@@ -173,6 +240,10 @@ class Image:
             # create a 3d grid
             volume = resample_volume(presample, volume)
             volume = np.round(volume).astype(int)
+
+        if make_isotropic:
+            volume = make_volume_isotropic(volume, current_spacing=spacing, iso_spacing=iso_spacing, is_mask=True)
+            spacing = iso_spacing
 
         # Generate a random 3D numpy array representing a volumek
         if method == 'marching_cubes':
@@ -318,27 +389,6 @@ class BrainImage(Image):
         data =  np.where(self.mask == side, 1, 0)
         hippo = Image(data=data)
         return hippo
-
-    def resample_spacing(self, new_spacing=(1, 1, 1)):
-        # resample the image to new spacing
-        temp_image = sitk.ReadImage(self.filename)
-        original_spacing = temp_image.GetSpacing()
-        original_size = temp_image.GetSize()
-        new_size = [int(np.round(original_size[i] * (original_spacing[i] / new_spacing[i]))) for i in range(3)]
-        resampled_image = sitk.Resample(temp_image, new_size, sitk.Transform(), sitk.sitkLinear, temp_image.GetOrigin(),
-                                        new_spacing, temp_image.GetDirection(), 0, temp_image.GetPixelID())
-        resampled_data = sitk.GetArrayFromImage(resampled_image)
-        self.image = resampled_data
-        # also resample the mask if it exists
-        if hasattr(self, 'mask'):
-            resampled_mask = sitk.Resample(sitk.GetImageFromArray(self.mask), new_size, sitk.Transform(), sitk.sitkLinear,
-                                          temp_image.GetOrigin(), new_spacing, temp_image.GetDirection(), 0, temp_image.GetPixelID())
-            # convert to ones and zeros
-            resampled_mask = sitk.GetArrayFromImage(resampled_mask)
-            resampled_mask = np.where(resampled_mask > 0.5, 1, 0)
-            self.mask = resampled_mask
-
-
 
     def plot_XY(self, show=True):
 

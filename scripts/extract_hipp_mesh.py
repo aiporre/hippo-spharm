@@ -157,28 +157,29 @@ for filename, mask_file, sub in tqdm.tqdm(values, desc='loading images', total=l
         # create a BrainImage object
         brain_image = BrainImage(filename, mask_file=mask_file)
         spacing = brain_image.get_spacing()
-        is_space_consistent = all([s == 1 for s in spacing])
-        if not is_space_consistent:
-            if args.isotropic:
-                print(f'Warning: spacing is not consistent across dimensions for {filename}, but --isotropic flag is set, using isotropic spacing for marching cubes')
-                iso_spacing = (1, 1, 1)
-                brain_image.resample_spacing(iso_spacing)
-                spacing = brain_image.get_spacing()
-                assert all([s == 1 for s in spacing]), f"Failed to resample to isotropic spacing for {filename}, current spacing: {spacing}"
-            else:
-                print(f'Warning: spacing is not consistent across dimensions for {filename}: {spacing}')
 
         # create a list of right hippocampus
         right_hipp = brain_image.get_hippocampus('right')
         # get features for each surface printing a progress bar with tqdm
+        is_space_consistent = all([s == 1 for s in spacing])
+        activate_isotropic = False
+        if not is_space_consistent:
+            if args.isotropic:
+                print(
+                    f'Warning: spacing is not consistent across dimensions for {filename}, but --isotropic flag is set, using isotropic spacing for marching cubes')
+                activate_isotropic = True
+                iso_spacing = [1, 1, 1]
+            else:
+                print(f'Warning: spacing is not consistent across dimensions for {filename}: {spacing}')
+
         N = 500
-        V_r, F_r = right_hipp.get_isosurface(value=0.5, presample=1, show=False, method='marching_cubes', N=500, spacing=spacing, as_surface=False)
+        V_r, F_r = right_hipp.get_isosurface(value=0.5, presample=1, show=False, method='marching_cubes', N=500, spacing=spacing, as_surface=False, make_isotropic=activate_isotropic)
         surface = Mesh(V_r, F_r)
         if not os.path.exists(model_name_prefix + '_right.obj') or args.overwrite:
             surface.save(model_name_prefix + '_right.obj')
         # create a list of left hippocampus
         left_hipp = brain_image.get_hippocampus('left')
-        V_l, F_l = left_hipp.get_isosurface(value=0.5, presample=1, show=False, method='marching_cubes', N=500, spacing=spacing, as_surface=False)
+        V_l, F_l = left_hipp.get_isosurface(value=0.5, presample=1, show=False, method='marching_cubes', N=500, spacing=spacing, as_surface=False, make_isotropic=activate_isotropic)
         surface = Mesh(V_l, F_l)
         # surface.save(model_name_prefix + '_left.obj')
         if not os.path.exists(model_name_prefix + '_left.obj') or args.overwrite:

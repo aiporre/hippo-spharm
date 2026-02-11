@@ -4,6 +4,7 @@ import argparse
 import os
 from random import shuffle
 import pandas as pd
+import sys
 
 from hippospharm.segmentation import BrainImage, Mesh
 import tqdm
@@ -23,7 +24,7 @@ datapath = args.datapath
 is_find_sessions = args.sessions
 target = args.target
 
-print('program started:', args)
+print(f'program started: {args}')
 
 def get_mri_session(sub, suffix):
     ## look for all the files of sessions
@@ -48,13 +49,17 @@ def get_mri(sub, suffix):
     mri_file = [f for f in files if f.endswith(f'_{suffix}.nii.gz')][0]
     return os.path.join(datapath, sub, 'anat', mri_file)
 
-print(' Processing files in ', datapath)
+print(f' Processing files in {datapath}')
+# initialize lists to avoid NameError/static-analysis issues
+files_corrected = []
+files_hip = []
+subs = []
 subs = [f for f in os.listdir(datapath) if f.startswith('sub')]
 # list of subjects files fond in datapath
-print('Found ', len(subs), ' subjects')
+print(f'Found {len(subs)} subjects')
 if is_find_sessions:
     files_corrected = []
-    files_hipp = []
+    files_hip = []
     for sub in subs:
         suffix = target
         files_corrected += get_mri_session(sub, suffix)
@@ -62,10 +67,13 @@ if is_find_sessions:
             suffix = 'seg'
         else:
             suffix = f'{target}_seg'
-        files_hipp += get_mri_session(sub, suffix)
+        files_hip += get_mri_session(sub, suffix)
     # filter none values in pairs
-    ffs = [(f1, f2) for f1, f2 in zip(files_corrected, files_hipp) if f1 is not None and f2 is not None]
-    files_corrected, files_hipp = zip(*ffs)
+    ffs = [(f1, f2) for f1, f2 in zip(files_corrected, files_hip) if f1 is not None and f2 is not None]
+    if len(ffs) == 0:
+        print(f'No matching session file pairs found in {datapath}; check --target and your session folders')
+        sys.exit(1)
+    files_corrected, files_hip = map(list, zip(*ffs))
 else:
     # TODO: use get_mri for dynamic file selection, now it is hardcoded to corrected and seg
     # Use get_mri for dynamic file selection
@@ -74,9 +82,9 @@ else:
     files_corrected = [get_mri(sub, target) for sub in subs]
     # find all segmentation files
     suffix = f"{target}_seg"
-    files_hipp = [get_mri(sub, f"{target}_seg") for sub in subs]
-print('Found ', len(files_hipp), ' hippocampus segmentation files')
-#for i, f in enumerate(files_hipp):
+    files_hip = [get_mri(sub, f"{target}_seg") for sub in subs]
+print(f'Found {len(files_hip)} hippocampus segmentation files')
+#for i, f in enumerate(files_hip):
 #    print(f'{i} : {f}')
 print('--------------------')
 print('processing....')
@@ -87,7 +95,7 @@ print('processing....')
 models_path = os.path.join(datapath, 'models')
 if not os.path.exists(models_path):
     os.makedirs(models_path)
-    print('Created models folder')
+    print(f'Created models folder: {models_path}')
 else:
     if args.overwrite:
         print('models folder already exists, models will be overwritten')
@@ -116,25 +124,26 @@ if not args.overwrite:
             continue
         # add the file to the list
         values_filtered.append((filename, mask_file, sub))
-    print('reduced files to process from', cnt, 'to', len(values_filtered))
+    print(f'reduced files to process from {cnt} to {len(values_filtered)}')
     values = values_filtered
 
 
+# shuffle expects a mutable sequence
 shuffle(values)
 
 for filename, mask_file, sub in tqdm.tqdm(values, desc='loading images', total=len(values)):
-    print('---->> processing: ', filename)
+    print(f'---->> processing: {filename}')
     # check if lock file exists
     f_lock = filename.replace(".nii.gz", ".meshlock")
     if os.path.exists(f_lock):
-        print('lock file exists, skipping', f_lock)
+        print(f'lock file exists, skipping {f_lock}')
         continue
     # then create a lock file
     with open(f_lock, 'w+') as f:
         f.write('lock file')
     try:
-        print('brain_image', filename)
-        print('mask file', mask_file)
+        print(f'brain_image: {filename}')
+        print(f'mask file: {mask_file}')
         # create the model name file in models folder with sub-XX_hip.obj
         if is_find_sessions:
             fname= os.path.basename(filename)
@@ -163,8 +172,8 @@ for filename, mask_file, sub in tqdm.tqdm(values, desc='loading images', total=l
         if not os.path.exists(model_name_prefix + '_left.obj') or args.overwrite:
             surface.save(model_name_prefix + '_left.obj')
     except Exception as e:
-        print('Failed to process ', filename)
-        print(e)
+        print(f'Failed to process {filename}')
+        print(f'Error: {e}')
         failed_list.append(filename)
         reason.append(str(e))
     # remove the lock file
@@ -172,11 +181,9 @@ for filename, mask_file, sub in tqdm.tqdm(values, desc='loading images', total=l
         os.remove(f_lock)
         assert not os.path.exists(f_lock), f"{f_lock} still there "
     else:
-        print('warining: lock file not found but program finsihed fine', f_lock)
+        print(f'warning: lock file not found but program finished fine: {f_lock}')
 print('Failed to process the following files:')
 df = pd.DataFrame({'filename': failed_list, 'reason': reason})
 # print the whole table
 pd.set_option('display.max_colwidth', None)
 print(df)
-
-

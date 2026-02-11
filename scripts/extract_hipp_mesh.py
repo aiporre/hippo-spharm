@@ -18,6 +18,7 @@ parser.add_argument('datapath', nargs='?', default=os.environ.get('DATAPATH'), h
 parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions')
 parser.add_argument('-o', '--overwrite', action='store_true', help='Overwrite models')
 parser.add_argument('-t', '--target', type=str, help='target image to extact: brain, corrected, reoriented, mni')
+parser.add_argument("--isotropic", action='store_true', help='Use isotropic spacing for marching cubes')
 
 args = parser.parse_args()
 datapath = args.datapath
@@ -159,15 +160,17 @@ for filename, mask_file, sub in tqdm.tqdm(values, desc='loading images', total=l
         spacing = brain_image.get_spacing()
         print(' 23897489237482947927>>>>>>>>>>>>>>>>> spacing', spacing)
         print(' 23897489237482947927>>>>>>>>>>>>>>>>> spacing', spacing)
-        print(' 23897489237482947927>>>>>>>>>>>>>>>>> spacing', spacing)
-        print(' 23897489237482947927>>>>>>>>>>>>>>>>> spacing', spacing)
-        print(' 23897489237482947927>>>>>>>>>>>>>>>>> spacing', spacing)
-        print(' 23897489237482947927>>>>>>>>>>>>>>>>> spacing', spacing)
-        print(' 23897489237482947927>>>>>>>>>>>>>>>>> spacing', spacing)
-        print(' 23897489237482947927>>>>>>>>>>>>>>>>> spacing', spacing)
-        print(' 23897489237482947927>>>>>>>>>>>>>>>>> spacing', spacing)
-        print(' 23897489237482947927>>>>>>>>>>>>>>>>> spacing', spacing)
-        assert all([s == 1 for s in spacing]), 'Spacing is not consistent'
+        #assert all([s == 1 for s in spacing]), 'Spacing is not consistent'
+        is_space_consistent = all([s == 1 for s in spacing])
+        if not is_space_consistent:
+            if args.isotropic:
+                print(f'Warning: spacing is not consistent across dimensions for {filename}, but --isotropic flag is set, using isotropic spacing for marching cubes')
+                iso_spacing = (1, 1, 1)
+                brain_image.resample_spacing(iso_spacing)
+                spacing = brain_image.get_spacing()
+                assert all([s == 1 for s in spacing]), f"Failed to resample to isotropic spacing for {filename}, current spacing: {spacing}"
+            else:
+                print(f'Warning: spacing is not consistent across dimensions for {filename}: {spacing}')
         raise Exception("sfinish hre")
         # create a list of right hippocampus
         print('getting hppocampus')

@@ -319,6 +319,25 @@ class BrainImage(Image):
         hippo = Image(data=data)
         return hippo
 
+    def resample_spacing(self, new_spacing=(1, 1, 1)):
+        # resample the image to new spacing
+        temp_image = sitk.ReadImage(self.filename)
+        original_spacing = temp_image.GetSpacing()
+        original_size = temp_image.GetSize()
+        new_size = [int(np.round(original_size[i] * (original_spacing[i] / new_spacing[i]))) for i in range(3)]
+        resampled_image = sitk.Resample(temp_image, new_size, sitk.Transform(), sitk.sitkLinear, temp_image.GetOrigin(),
+                                        new_spacing, temp_image.GetDirection(), 0, temp_image.GetPixelID())
+        resampled_data = sitk.GetArrayFromImage(resampled_image)
+        self.image = resampled_data
+        # also resample the mask if it exists
+        if hasattr(self, 'mask'):
+            resampled_mask = sitk.Resample(sitk.GetImageFromArray(self.mask), new_size, sitk.Transform(), sitk.sitkLinear,
+                                          temp_image.GetOrigin(), new_spacing, temp_image.GetDirection(), 0, temp_image.GetPixelID())
+            # convert to ones and zeros
+            resampled_mask = sitk.GetArrayFromImage(resampled_mask)
+            resampled_mask = np.where(resampled_mask > 0.5, 1, 0)
+            self.mask = resampled_mask
+
 
 
     def plot_XY(self, show=True):

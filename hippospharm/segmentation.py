@@ -86,9 +86,11 @@ def make_volume_isotropic(volume,
 
     resampled = resampler.Execute(image)
     # make sure the resampled is 0 to 1
+
+    output = sitk.GetArrayFromImage(resampled)
     if is_mask:
-        resampled = sitk.BinaryThreshold(resampled, lowerThreshold=0.5, upperThreshold=1.0, insideValue=1, outsideValue=0)
-    return sitk.GetArrayFromImage(resampled)
+        output = (output>0.5).astype(int)
+    return output
 
 
 

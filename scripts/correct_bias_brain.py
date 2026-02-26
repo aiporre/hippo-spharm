@@ -5,8 +5,6 @@ import tqdm
 from hippmapper.cli import main
 
 from filelock import FileLock
-import nibabel as nib
-import numpy as np
 
 def usage():
     print("Usage python segmentation.py <dataset with sub-dirs> [options]")
@@ -27,22 +25,6 @@ def get_mri(sub):
     files = os.listdir(os.path.join(dataset_path,sub,'anat'))
     mri_file = [f for f in files if f.endswith('_T1w.nii.gz')][0]
     return os.path.join(dataset_path,sub, 'anat', mri_file)
-
-# new helper: reorient image to canonical and return path (original or reoriented)
-def reorient_to_canonical(inp_path):
-    # reuse existing reoriented file if present
-    out_path = inp_path.replace('.nii.gz', '_reoriented.nii.gz')
-    if os.path.exists(out_path):
-        return out_path
-    img = nib.load(inp_path)
-    canon = nib.as_closest_canonical(img)
-    # check if orientation/affine/shape changed
-    affine_changed = not np.allclose(img.affine, canon.affine, atol=1e-6)
-    shape_changed = img.shape != canon.shape
-    if affine_changed or shape_changed:
-        nib.save(canon, out_path)
-        return out_path
-    return inp_path
 
 # parsing argumtens
 if "-h" in sys.argv or "--help" in sys.argv:
@@ -94,13 +76,8 @@ if len(subs) == 0:
 print('one mri file' , get_mri(subs[0]))
 
 # make a list of inputs
-# replace: files_input = [get_mri(sub) for sub in subs]
-files_input = []
-for sub in subs:
-    orig = get_mri(sub)
-    # produce a reoriented file when necessary and use it for bias correction
-    inp = reorient_to_canonical(orig)
-    files_input.append(inp)
+
+files_input = [get_mri(sub) for sub in subs]
 
 # make a list of outputs changing a suffix -corrected.nii.gz
 def make_output(f_input, sub,  suffix):

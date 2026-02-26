@@ -1,0 +1,16 @@
+numpy
+pandas
+scipy
+matplotlib
+scikit-image
+nibabel
+SimpleITK
+trimesh
+pyshtools
+plotly
+seaborn
+tqdm
+filelock
+nipype
+# hippmapper is available at https://github.com/AICONSlab/HippMapp3r
+# bpy (Blender Python) is bundled with Blender and not installable via pip

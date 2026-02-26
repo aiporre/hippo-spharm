@@ -13,8 +13,14 @@ from hippospharm.surface import Surface
 def resample_volume(presample, volume):
     N_v, M_v, P_v = volume.shape
     # create a regular grid interpolator
-    interpolator = RegularGridInterpolator((np.arange(N_v), np.arange(M_v), np.arange(P_v)), volume,
+    try:
+        interpolator = RegularGridInterpolator((np.arange(N_v), np.arange(M_v), np.arange(P_v)), volume,
                                            method='cubic', bounds_error=False, fill_value=0)
+    except ValueError:
+        print('warinig no cubic interpolator')
+        interpolator = RegularGridInterpolator((np.arange(N_v), np.arange(M_v), np.arange(P_v)), volume,
+                                           method='linear', bounds_error=False, fill_value=0)
+
     # create a new grid with presample points
     step_n, step_m, step_p = N_v * presample, M_v * presample, P_v * presample
     # round steps
@@ -257,6 +263,8 @@ class Image:
             iso_value = value
 
             # Get the vertices and faces of the isosurface using marching cubes
+            print("volume", volume)
+            print("max volume", np.max(volume))
             vertices, faces, _, _ = measure.marching_cubes(volume, iso_value, spacing=spacing, allow_degenerate=False )
             # put vertices in N x 3 array
             data = np.array(vertices)

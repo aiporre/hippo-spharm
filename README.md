@@ -29,3 +29,21 @@ copy this into your bashrc
 export FREESURFER_HOME=$HOME/freesurfer
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 ```
+
+# installation
+
+```
+conda create -n hippospharm python=3.10 pip
+```
+
+fix meshes requires it own conda env
+
+
+```
+conda create -n hippospharm python=3.7 pip
+pip install quad_mesh_simpify==1.1.5
+```
+
+alternative for it worked better just to get the repo and build the wheel and intall it. TODO: put commands here.
+
+

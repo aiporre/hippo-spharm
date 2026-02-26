@@ -1,4 +1,134 @@
-# checks nii.gz files in sub-*/ses-*/anat/ folder orientation in the input dataset
+# File: scripts/check_data_orientation_fixed.py
+import argparse
+import os
+import sys
+import numpy as np
+import nibabel as nib
+
+parser = argparse.ArgumentParser(description='Check and fix orientation of nifti files in the dataset')
+parser.add_argument('dataset_path', help='Path to the dataset')
+parser.add_argument('-b', '--brain', action='store_true', help='Use brain extracted images')
+parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions')
+args = parser.parse_args()
+
+dataset_path = args.dataset_path
+brain_extraction = args.brain
+is_search_sessions = args.sessions
+
+def list_subs(path):
+    return [f for f in os.listdir(path) if f.startswith('sub')]
+
+def get_mri(sub):
+    anat_dir = os.path.join(dataset_path, sub, 'anat')
+    files = os.listdir(anat_dir)
+    pattern = '_brain.nii.gz' if brain_extraction else '_corrected.nii.gz'
+    matches = [f for f in files if f.endswith(pattern)]
+    if not matches:
+        raise FileNotFoundError(f"No matching file in ` {anat_dir} `")
+    return os.path.join(anat_dir, matches[0])
+
+def get_mri_session(sub):
+    sub_path = os.path.join(dataset_path, sub)
+    try:
+        sessions = [f for f in os.listdir(sub_path) if f.startswith('ses')]
+    except FileNotFoundError:
+        return []
+    mri_files = []
+    for session in sessions:
+        session_path = os.path.join(sub_path, session, 'anat')
+        if not os.path.isdir(session_path):
+            continue
+        files = os.listdir(session_path)
+        pattern = '_brain.nii.gz' if brain_extraction else '_corrected.nii.gz'
+        candidates = [f for f in files if f.endswith(pattern)]
+        if candidates:
+            mri_files.append(os.path.join(session_path, candidates[0]))
+    return mri_files
+
+def make_output(f_input, sub, suffix):
+    var_path = os.path.dirname(f_input)
+    return os.path.join(var_path, sub + '_' + suffix + '.nii.gz')
+
+def make_output_sessions(f_input, suffix):
+    var_path = os.path.dirname(f_input)
+    f_prefix = os.path.basename(f_input).rsplit('_', 1)[0]
+    return os.path.join(var_path, f_prefix + f'_{suffix}.nii.gz')
+
+TARGET = ('L', 'P', 'I')
+
+def check_orientation(sub, f):
+    img = nib.load(f)
+    data = img.get_fdata()
+    orig_axcodes = nib.aff2axcodes(img.affine)
+    print('current orientation', orig_axcodes)
+
+    if orig_axcodes == TARGET:
+        print('Already in target orientation')
+        return False  # not fixed because it was already correct
+
+    # compute orientation transforms
+    curr_ornt = nib.orientations.axcodes2ornt(orig_axcodes)
+    target_ornt = nib.orientations.axcodes2ornt(TARGET)
+    ornt_trans = nib.orientations.ornt_transform(curr_ornt, target_ornt)
+
+    # apply voxel reordering
+    data_reoriented = nib.orientations.apply_orientation(data, ornt_trans)
+
+    # compute new affine to match reoriented data
+    inv_aff = nib.orientations.inv_ornt_aff(ornt_trans, img.shape)
+    new_affine = img.affine.dot(inv_aff)
+
+    out_img = nib.Nifti1Image(data_reoriented, new_affine)
+
+    if is_search_sessions:
+        f_out = make_output_sessions(f, 'reoriented')
+    else:
+        f_out = make_output(f, sub, 'reoriented')
+    nib.save(out_img, f_out)
+
+    new_axcodes = nib.aff2axcodes(out_img.affine)
+    print('new orientation', new_axcodes)
+    fixed = new_axcodes == TARGET
+    return fixed
+
+def gather_files():
+    subs = list_subs(dataset_path)
+    if not subs:
+        print(f"Directory ` {dataset_path} ` has not sub-x directories containing data")
+        sys.exit(0)
+    if is_search_sessions:
+        files_input = []
+        for sub in subs:
+            files_input += get_mri_session(sub)
+    else:
+        files_input = [get_mri(sub) for sub in subs]
+    return subs, files_input
+
+def main():
+    subs, files_input = gather_files()
+    summary = {}
+    for sub, f in zip(subs, files_input):
+        try:
+            fixed = check_orientation(sub, f)
+        except Exception as e:
+            print(f"Error processing ` {f} `: {e}")
+            summary[os.path.basename(f)] = f'error: {e}'
+            continue
+        if fixed:
+            summary[os.path.basename(f)] = 'was fixed'
+            print('Orientation of', f, 'was fixed')
+        else:
+            summary[os.path.basename(f)] = 'already correct'
+            print('Orientation of', f, 'is correct or unchanged')
+
+    print('Summary table')
+    for k, v in summary.items():
+        print('__________________________________________________')
+        print(f"{k} | {v} |")
+    print('__________________________________________________')
+
+if __name__ == '__main__':
+    main()
 import argparse
 import os
 import sys
@@ -29,18 +159,32 @@ def get_mri(sub):
     return os.path.join(dataset_path,sub, 'anat', mri_file)
 
 def get_mri_session(sub):
-    ## look for all the files of sessions
-    sessions = [f for f in os.listdir(os.path.join(dataset_path,sub)) if f.startswith('ses')]
-    session_paths = [os.path.join(dataset_path,sub, session, 'anat') for session in sessions]
+    # look for all the files of sessions
+    sub_path = os.path.join(dataset_path, sub)
+    try:
+        sessions = [f for f in os.listdir(sub_path) if f.startswith('ses')]
+    except FileNotFoundError:
+        print(f"Warning: sub-directory ` {sub_path} ` not found")
+        return []
     mri_files = []
-    for session_path in session_paths:
-        files = os.listdir(session_path)
+    for session in sessions:
+        session_path = os.path.join(sub_path, session, 'anat')
+        if not os.path.isdir(session_path):
+            print(f"Warning: ` {session_path} ` missing, skipping")
+            continue
+        try:
+            files = os.listdir(session_path)
+        except Exception:
+            print(f"Warning: cannot list ` {session_path} `, skipping")
+            continue
         if brain_extraction:
-            mri_file = [f for f in files if f.endswith('_brain.nii.gz')][0]
+            candidates = [f for f in files if f.endswith('_brain.nii.gz')]
         else:
-            mri_file = [f for f in files if f.endswith('_corrected.nii.gz')][0]
-        mri_files.append(os.path.join(session_path, mri_file))
-
+            candidates = [f for f in files if f.endswith('_corrected.nii.gz')]
+        if not candidates:
+            print(f"Warning: no matching nii.gz in ` {session_path} `, skipping")
+            continue
+        mri_files.append(os.path.join(session_path, candidates[0]))
     return mri_files
 
 if is_search_sessions:

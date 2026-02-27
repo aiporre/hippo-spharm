@@ -51,4 +51,26 @@ python scripts/segment_brain.py `$DATAPATH` -s -r -i
 
 # hippocampus segmentation
 # this creates the hippocampus segmenation reoriented_brain_seg.nii.gz file
+
+
 python scripts/segment_hippocampus.py `$DATAPATH` -s -t brain --brain_target reoriented
+```
+
+
+# installation
+
+```
+conda create -n hippospharm python=3.10 pip
+```
+
+fix meshes requires it own conda env
+
+
+```
+conda create -n hippospharm python=3.7 pip
+pip install quad_mesh_simpify==1.1.5
+```
+
+alternative for it worked better just to get the repo and build the wheel and intall it. TODO: put commands here.
+
+

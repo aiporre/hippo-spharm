@@ -110,7 +110,7 @@ else:
 print('one mri file', files_input[0])
 
 
-# make a list of outputs changing a suffix -corrected.nii.gz
+# Build output path in the same directory: filename will be `{sub}_{suffix}.nii.gz`
 def make_output(f_input, sub, suffix):
     var_path = os.path.dirname(f_input)
     print('subs', sub)

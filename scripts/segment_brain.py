@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(description='Brain extraction using BET')
 parser.add_argument('dataset_path', type=str, help='Dataset path')
 parser.add_argument('-p', '--processes', type=int, default=1, help='Number of processes')
 # parser.add_argument('-r', '--reoriented', action='store_true', help='use reoriented extraction, default is bias correction')
-parser.add_argument('-T', '--target', type=str, default="correction", help='Target suffix for input files, default is "correction". If reoriented images are used, set this to "reoriented", if isotrpic images are used, set this to "isotropic"')
+parser.add_argument('-i', '--isotropic', action='store_true', help='applies the isotropic resampling before brain extraction, default is off.')
 parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions')
 parser.add_argument('-t', '--tool', type=str, default='bet', help='Tool to use for brain extraction. default is bet (FSL)', choices=['bet', 'hd-bet'])
 parser.add_argument('-c', '--crop', action='store_true', help='Do only crop,')
@@ -21,9 +21,10 @@ args = parser.parse_args()
 
 dataset_path = args.dataset_path
 processes = args.processes
-#is_reoriented = args.reoriented
-target = args.target
+is_reoriented = args.reoriented
+target = 'reoriented' if is_reoriented else 'corrected'
 is_find_sessions = args.sessions
+is_isotropic = args.isotropic
 bet_tool = args.tool
 only_crop = args.crop
 
@@ -55,8 +56,6 @@ def get_mri_session(sub):
         files = os.listdir(session_path)
         if target == 'reoriented':
             _files = [f for f in files if f.endswith('_reoriented.nii.gz')]
-        elif target == 'isotropic':
-            _files = [f for f in files if f.endswith('_isotropic.nii.gz')]
         else:
             _files = [f for f in files if f.endswith('_corrected.nii.gz')]
         if len(_files) == 0:
@@ -91,10 +90,34 @@ else:
     files_input = [get_mri(sub) for sub in subs]
     files_brain = [make_output(f_in, sub) for f_in, sub in zip(files_input, subs)]
 
-# first get the ROI of head then extract the brain
+# If isotropic resampling was requested, add conversion commands and switch inputs to isotropic files
+conv_commands = []
+if is_isotropic:
+    conv_script = os.path.join(os.path.dirname(__file__), 'convert_isotropic.py')
+    new_files_input = []
+    for f in files_input:
+        base = os.path.basename(f)
+        if base.endswith('.nii.gz'):
+            base_noext = base[:-7]
+        elif base.endswith('.nii'):
+            base_noext = base[:-4]
+        else:
+            base_noext = os.path.splitext(base)[0]
+        iso_path = os.path.join(os.path.dirname(f), base_noext + '_isotropic.nii.gz')
+        # only add conversion command if the isotropic file does not already exist
+        if not os.path.exists(iso_path):
+            conv_commands.append([sys.executable, conv_script, f, '-o', iso_path])
+        new_files_input.append(iso_path)
+    files_input = new_files_input
+    # regenerate output filenames to match new inputs
+    if is_find_sessions:
+        files_brain = [make_output_sessions(f_in) for f_in in files_input]
+    else:
+        files_brain = [make_output(f_in, sub) for f_in, sub in zip(files_input, subs)]
 
 # Make a list of commands for brain extraction
-commands = []
+# start from conv_commands so conversions run first (if any)
+commands = list(conv_commands)
 for f_in, f_out in zip(files_input, files_brain):
     if not os.path.exists(f_out):
         # this is a command from FSL bet extraction

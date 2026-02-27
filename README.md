@@ -29,3 +29,26 @@ copy this into your bashrc
 export FREESURFER_HOME=$HOME/freesurfer
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 ```
+# IXI pipeline
+1. run bias correction on the T1 image using the script in the scripts folder
+2. run reorientation script in the scripts folder
+3. run brain extraction using the FSL BET tool with isotropic because voxels to large
+4. run hippocampus extraction using the FSL FIRST tool with isotropic because voxels to large
+```
+export DATAPATH=`/media/sauron/GG2/datasets/IXIDATA/IXI_BIDS`
+conda activate hippmapper 
+# correct bias
+# this creates a _corrected.nii.gz file
+python scripts/correct_bias.py `$DATAPATH` -s
+
+# check orientation
+# this creates a _reoriented.nii.gz file
+python scripts/check_data_orientation.py `$DATAPATH` -s 
+
+# brain segmentation
+# this creates a _reoriented_brain.nii.gz file
+python scripts/segment_brain.py `$DATAPATH` -s -r -i
+
+# hippocampus segmentation
+# this creates the hippocampus segmenation reoriented_brain_seg.nii.gz file
+python scripts/segment_hippocampus.py `$DATAPATH` -s -t brain --brain_target reoriented

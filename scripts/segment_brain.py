@@ -12,7 +12,7 @@ from filelock import FileLock
 parser = argparse.ArgumentParser(description='Brain extraction using BET')
 parser.add_argument('dataset_path', type=str, help='Dataset path')
 parser.add_argument('-p', '--processes', type=int, default=1, help='Number of processes')
-# parser.add_argument('-r', '--reoriented', action='store_true', help='use reoriented extraction, default is bias correction')
+parser.add_argument('-r', '--reoriented', action='store_true', help='use reoriented extraction, default is bias correction')
 parser.add_argument('-i', '--isotropic', action='store_true', help='applies the isotropic resampling before brain extraction, default is off.')
 parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions')
 parser.add_argument('-t', '--tool', type=str, default='bet', help='Tool to use for brain extraction. default is bet (FSL)', choices=['bet', 'hd-bet'])
@@ -148,6 +148,8 @@ def execute_command(*c):
         f_out = c[-1]
     elif command_name == 'bet' or command_name == 'hd-bet':
         f_out = c[2]
+    elif command_name == sys.executable:
+        f_out = c[4]
     else:
         raise Exception('Unknown command')
     f_lock = f_out + '.lock'

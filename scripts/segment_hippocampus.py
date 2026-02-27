@@ -14,6 +14,7 @@ parser.add_argument('dataset_path', type=str, help='dataset path')
 parser.add_argument('-p', '--processes', type=int, default=1, help='number of processes')
 parser.add_argument('-t', '--target', type=str, default="brain",
                     help='target image to extact: brain, corrected, reoriented, mni')
+parser.add_argument('--brain_target', type=str, default=None, help="if target brain you need to tell which corrected_brain or reoriented_brain to use")
 parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions')
 parser.add_argument("--tool", type=str, default="hippmapper", help="tool to use for hippocampus segmentation",
                     choices=["hippmapper", "freesurfer"])
@@ -24,6 +25,15 @@ PROCESSES = max(1, multiprocessing.cpu_count() - 3)
 processes = args.processes
 is_find_sessions = args.sessions
 target_type = args.target
+if target_type == 'brain':
+    # you need to tell me which brain reoriented or corrected _brain.
+    if args.brain_target is None:
+        print("Error: if target is brain you need to tell which brain to use with --brain_target corrected or reoriented")
+        sys.exit(0)
+    if args.brain_target not in ['corrected', 'reoriented']:
+        print("Error: brain_target must be either corrected or reoriented")
+        sys.exit(0)
+
 tool = args.tool
 # check if the target type is in the list
 if target_type not in ['brain', 'corrected', 'reoriented', 'mni', 't1w']:
@@ -58,45 +68,76 @@ if len(subs) == 0:
 def get_mri(sub):
     files = os.listdir(os.path.join(dataset_path, sub, 'anat'))
     if target_type == 'brain':
-        mri_file = [f for f in files if f.endswith('_brain.nii.gz')][0]
+        if args.brain_target == 'corrected':
+            mri_candidates = [f for f in files if f.endswith('_corrected_brain.nii.gz')]
+        else:
+            mri_candidates = [f for f in files if f.endswith('_reoriented_brain.nii.gz')]
     elif target_type == 'reoriented':
-        mri_file = [f for f in files if f.endswith('_reoriented.nii.gz')][0]
+        mri_candidates = [f for f in files if f.endswith('_reoriented.nii.gz')]
     elif target_type == 'corrected':
-        mri_file = [f for f in files if f.endswith('_corrected.nii.gz')][0]
+        mri_candidates = [f for f in files if f.endswith('_corrected.nii.gz')]
     elif target_type == 'mni':
-        mri_file = [f for f in files if f.endswith('_mni.nii.gz')][0]
+        mri_candidates = [f for f in files if f.endswith('_mni.nii.gz')]
     elif target_type == 't1w':
-        mri_file = [f for f in files if f.endswith('_T1w.nii.gz')][0]
+        mri_candidates = [f for f in files if f.endswith('_T1w.nii.gz')]
     else:
         raise Exception(f'Unknown target type: {target_type}')
+    if not mri_candidates:
+        print(f"No {target_type} MRI found in {os.path.join(dataset_path, sub, 'anat')}, skipping")
+        return None
+    if len(mri_candidates) > 1:
+        print(f"Warning: multiple {target_type} MRI found in {os.path.join(dataset_path, sub, 'anat')}, using the first one")
+        print('there were your options the candidates were : ')
+        one = True
+        for c in mri_candidates:
+            if one:
+                print(' - ', c, ' <-- this one will be used')
+                one = False
+            else:
+                print(f" - {c}")
+    mri_file = mri_candidates[0]
     return os.path.join(dataset_path, sub, 'anat', mri_file)
 
 
 def get_mri_session(sub):
-    ## look for all the files of sessions
-    sessions = [f for f in os.listdir(os.path.join(dataset_path, sub)) if f.startswith('ses')]
-    session_paths = [os.path.join(dataset_path, sub, session, 'anat') for session in sessions]
-    mri_files = []
-    for session_path in session_paths:
-        files = os.listdir(session_path)
-        if target_type == 'brain':
-            mri_file = [f for f in files if f.endswith('_brain.nii.gz')]
-        elif target_type == 'reoriented':
-            mri_file = [f for f in files if f.endswith('_reoriented.nii.gz')]
-        elif target_type == 'corrected':
-            mri_file = [f for f in files if f.endswith('_corrected.nii.gz')]
-        elif target_type == 'mni':
-            mri_file = [f for f in files if f.endswith('_mni.nii.gz')]
-        elif target_type == 't1w':
-            mri_file = [f for f in files if f.endswith('_T1w.nii.gz')]
-        else:
-            raise Exception(f'Unknown target type: {target_type}')
-        if len(mri_file) == 0:
-            continue
-        mri_file = mri_file[0]
-        mri_files.append(os.path.join(session_path, mri_file))
+        ## look for all the files of sessions
+        sessions = [f for f in os.listdir(os.path.join(dataset_path, sub)) if f.startswith('ses')]
+        session_paths = [os.path.join(dataset_path, sub, session, 'anat') for session in sessions]
+        mri_files = []
+        for session_path in session_paths:
+            if not os.path.isdir(session_path):
+                continue
+            files = os.listdir(session_path)
+            if target_type == 'brain':
+                if args.brain_target == 'corrected':
+                    mri_candidates = [f for f in files if f.endswith('_corrected_brain.nii.gz')]
+                else:
+                    mri_candidates = [f for f in files if f.endswith('_reoriented_brain.nii.gz')]
+            elif target_type == 'reoriented':
+                mri_candidates = [f for f in files if f.endswith('_reoriented.nii.gz')]
+            elif target_type == 'corrected':
+                mri_candidates = [f for f in files if f.endswith('_corrected.nii.gz')]
+            elif target_type == 'mni':
+                mri_candidates = [f for f in files if f.endswith('_mni.nii.gz')]
+            elif target_type == 't1w':
+                mri_candidates = [f for f in files if f.endswith('_T1w.nii.gz')]
+            else:
+                raise Exception(f'Unknown target type: {target_type}')
+            if not mri_candidates:
+                print(f"No {target_type} MRI found in {session_path}, skipping")
+                continue
+            if len(mri_candidates) > 1:
+                print(f"Warning: multiple {target_type} MRI found in {session_path}, using the first one")
+                one = True
+                for c in mri_candidates:
+                    if one:
+                        print(' - ', c, ' <-- this one will be used')
+                        one = False
+                    else:
+                        print(f" - {c}")
+            mri_files.append(os.path.join(session_path, mri_candidates[0]))
 
-    return mri_files
+        return mri_files
 
 
 # make a list of inputs

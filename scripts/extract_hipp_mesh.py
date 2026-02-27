@@ -17,7 +17,9 @@ parser = argparse.ArgumentParser(description='Extract features from hippocampus 
 parser.add_argument('datapath', nargs='?', default=os.environ.get('DATAPATH'), help='Path to the data directory or set the environment variable DATAPATH')
 parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions')
 parser.add_argument('-o', '--overwrite', action='store_true', help='Overwrite models')
-parser.add_argument('-t', '--target', type=str, help='target image to extact: brain, corrected, reoriented, mni')
+# Accept -T (preferred) and keep -t for backward compatibility. Default to 'corrected'.
+parser.add_argument('-T', '-t', '--target', type=str, default='corrected',
+                    help='target image to extract: brain, corrected, reoriented, mni, isotropic (default: corrected)')
 parser.add_argument("--isotropic", action='store_true', help='Use isotropic spacing for marching cubes')
 
 args = parser.parse_args()

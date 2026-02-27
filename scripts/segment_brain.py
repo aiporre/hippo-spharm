@@ -12,7 +12,8 @@ from filelock import FileLock
 parser = argparse.ArgumentParser(description='Brain extraction using BET')
 parser.add_argument('dataset_path', type=str, help='Dataset path')
 parser.add_argument('-p', '--processes', type=int, default=1, help='Number of processes')
-parser.add_argument('-r', '--reoriented', action='store_true', help='use reoriented extraction, default is bias correction')
+# parser.add_argument('-r', '--reoriented', action='store_true', help='use reoriented extraction, default is bias correction')
+parser.add_argument('-T', '--target', type=str, default="correction", help='Target suffix for input files, default is "correction". If reoriented images are used, set this to "reoriented", if isotrpic images are used, set this to "isotropic"')
 parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions')
 parser.add_argument('-t', '--tool', type=str, default='bet', help='Tool to use for brain extraction. default is bet (FSL)', choices=['bet', 'hd-bet'])
 parser.add_argument('-c', '--crop', action='store_true', help='Do only crop,')
@@ -20,7 +21,8 @@ args = parser.parse_args()
 
 dataset_path = args.dataset_path
 processes = args.processes
-is_reoriented = args.reoriented
+#is_reoriented = args.reoriented
+target = args.target
 is_find_sessions = args.sessions
 bet_tool = args.tool
 only_crop = args.crop
@@ -51,10 +53,17 @@ def get_mri_session(sub):
     mri_files = []
     for session_path in session_paths:
         files = os.listdir(session_path)
-        if is_reoriented:
-            mri_file = [f for f in files if f.endswith('_reoriented.nii.gz')][0]
+        if target == 'reoriented':
+            _files = [f for f in files if f.endswith('_reoriented.nii.gz')]
+        elif target == 'isotropic':
+            _files = [f for f in files if f.endswith('_isotropic.nii.gz')]
         else:
-            mri_file = [f for f in files if f.endswith('_corrected.nii.gz')][0]
+            _files = [f for f in files if f.endswith('_corrected.nii.gz')]
+        if len(_files) == 0:
+            # skip this session if no reoriented file is found
+            print(f"No reoriented file found in {session_path}, skipping")
+            continue
+        mri_file = _files[0]
         mri_files.append(os.path.join(session_path, mri_file))
 
     return mri_files
@@ -64,7 +73,7 @@ def make_output(f_input, sub):
     var_path = os.path.dirname(f_input)
     var_path = os.path.join(var_path, sub + '_brain.nii.gz')
     return var_path
-# make out for sessions
+# make out for sessionsr
 def make_output_sessions(f_input):
     var_path = os.path.dirname(f_input)
     f_prefix = os.path.basename(f_input).rsplit('_', 1)[0]

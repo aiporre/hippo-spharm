@@ -14,7 +14,7 @@ parser.add_argument('dataset_path', type=str, help='dataset path')
 parser.add_argument('-p', '--processes', type=int, default=1, help='number of processes')
 parser.add_argument('-t', '--target', type=str, default="brain",
                     help='target image to extact: brain, corrected, reoriented, mni')
-parser.add_argument('--brain_target', type=str, default=None, help="if target brain you need to tell which corrected_brain or reoriented_brain to use")
+parser.add_argument('--brain_target', type=str, default=None, help="if target brain you need to tell which corrected_brain or reoriented_brain to use. If plain is used it will look for _brain.nii.gz without suffix")
 parser.add_argument('-s', '--sessions', action='store_true', help='Check sessions')
 parser.add_argument("--tool", type=str, default="hippmapper", help="tool to use for hippocampus segmentation",
                     choices=["hippmapper", "freesurfer"])
@@ -30,8 +30,8 @@ if target_type == 'brain':
     if args.brain_target is None:
         print("Error: if target is brain you need to tell which brain to use with --brain_target corrected or reoriented")
         sys.exit(0)
-    if args.brain_target not in ['corrected', 'reoriented']:
-        print("Error: brain_target must be either corrected or reoriented")
+    if args.brain_target not in ['corrected', 'reoriented', 'plain']:
+        print("Error: brain_target must be either corrected or reoriented or plain (no suffix) check the help command -h")
         sys.exit(0)
 
 tool = args.tool
@@ -70,8 +70,12 @@ def get_mri(sub):
     if target_type == 'brain':
         if args.brain_target == 'corrected':
             mri_candidates = [f for f in files if f.endswith('_corrected_brain.nii.gz')]
-        else:
+        elif args.brain_target == 'reoriented':
             mri_candidates = [f for f in files if f.endswith('_reoriented_brain.nii.gz')]
+        elif args.brain_target == 'plain':
+            mri_candidates = [f for f in files if f.endswith('_brain.nii.gz')]
+        else:
+            raise Exception(f'Unknown brain target type: {args.brain_target}')
     elif target_type == 'reoriented':
         mri_candidates = [f for f in files if f.endswith('_reoriented.nii.gz')]
     elif target_type == 'corrected':
@@ -111,8 +115,12 @@ def get_mri_session(sub):
             if target_type == 'brain':
                 if args.brain_target == 'corrected':
                     mri_candidates = [f for f in files if f.endswith('_corrected_brain.nii.gz')]
-                else:
+                elif args.brain_target == 'reoriented':
                     mri_candidates = [f for f in files if f.endswith('_reoriented_brain.nii.gz')]
+                elif args.brain_target == 'plain':
+                    mri_candidates = [f for f in files if f.endswith('_brain.nii.gz')]
+                else:
+                    raise Exception(f'Unknown brain target type: {args.brain_target}')
             elif target_type == 'reoriented':
                 mri_candidates = [f for f in files if f.endswith('_reoriented.nii.gz')]
             elif target_type == 'corrected':
@@ -147,6 +155,11 @@ if is_find_sessions:
         files_input += get_mri_session(sub)
 else:
     files_input = [get_mri(sub) for sub in subs]
+# clean up the none files
+files_input = [f for f in files_input if f is not None]
+if len(files_input) == 0:
+    print(f"No {target_type} MRI found in any of the subs, exiting")
+    sys.exit(0)
 
 print('one mri file', files_input[0])
 

@@ -49,7 +49,18 @@ def get_mri_session(sub, suffix):
 def get_mri(sub, suffix):
     files = os.listdir(os.path.join(datapath,sub,'anat'))
     # TODO: if zero or more than one file is found, raise an exception
-    mri_file = [f for f in files if f.endswith(f'_{suffix}.nii.gz')][0]
+    candidate_files = [f for f in files if f.endswith(f'_{suffix}.nii.gz')]
+    if len(candidate_files) == 0:
+        print(f'No {suffix} file found for {sub} in {os.path.join(datapath,sub,"anat")}')
+        return None
+    if len(candidate_files) > 1:
+        print(f'Multiple {suffix} files found for {sub} in {os.path.join(datapath,sub,"anat")}, using the first one')
+        for i, f in enumerate(candidate_files):
+            if i == 0:
+                print(f'  - {f} (selected)')
+            else:
+                print(f'  - {f}')
+    mri_file = candidate_files[0]
     return os.path.join(datapath, sub, 'anat', mri_file)
 
 print(f' Processing files in {datapath}')
@@ -84,8 +95,11 @@ else:
     suffix = target
     files_corrected = [get_mri(sub, target) for sub in subs]
     # find all segmentation files
-    suffix = f"{target}_seg"
-    files_hip = [get_mri(sub, f"{target}_seg") for sub in subs]
+    if target == 'brain':
+        suffix = 'seg'
+    else:
+        suffix = f'{target}_seg'
+    files_hip = [get_mri(sub, suffix) for sub in subs]
 print(f'Found {len(files_hip)} hippocampus segmentation files')
 #for i, f in enumerate(files_hip):
 #    print(f'{i} : {f}')

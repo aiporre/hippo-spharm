@@ -43,25 +43,64 @@ if len(subs) == 0:
 
 # Function to get MRI file
 def get_mri(sub):
-    files = os.listdir(os.path.join(dataset_path, sub, 'anat'))
-    mri_file = [f for f in files if f.endswith('.nii.gz')][0]
-    return os.path.join(dataset_path, sub, 'anat', mri_file)
+    anat_dir = os.path.join(dataset_path, sub, 'anat')
+    if not os.path.isdir(anat_dir):
+        print(f"Warning: anatomy directory not found for {sub}")
+        return None
+    files = os.listdir(anat_dir)
+    # Search for specific target file based on the target variable
+    if target == 'reoriented':
+        _files = [f for f in files if f.endswith('_reoriented.nii.gz')]
+    else:
+        _files = [f for f in files if f.endswith('_corrected.nii.gz')]
+
+    if len(_files) == 0:
+        print(f"Warning: No {target} MRI file found for {sub}")
+        return None
+
+    if len(_files) > 1:
+        print(f"Warning: Multiple {target} MRI files found for {sub}, using the first one")
+
+    mri_file = _files[0]
+    return os.path.join(anat_dir, mri_file)
 
 def get_mri_session(sub):
-    ## look for all the files of sessions
-    sessions = [f for f in os.listdir(os.path.join(dataset_path,sub)) if f.startswith('ses')]
-    session_paths = [os.path.join(dataset_path,sub, session, 'anat') for session in sessions]
+    """Get MRI files for all sessions of a subject.
+
+    Args:
+        sub: Subject identifier
+
+    Returns:
+        List of paths to MRI files found in session directories. Empty list if no sessions found.
+    """
+    sub_path = os.path.join(dataset_path, sub)
+    sessions = [f for f in os.listdir(sub_path) if f.startswith('ses')]
+
+    if not sessions:
+        print(f"No sessions found for {sub}")
+        return []
+
+    session_paths = [os.path.join(sub_path, session, 'anat') for session in sessions]
     mri_files = []
     for session_path in session_paths:
+        if not os.path.isdir(session_path):
+            print(f"Warning: Anatomy directory not found: {session_path}, skipping")
+            continue
+
         files = os.listdir(session_path)
         if target == 'reoriented':
             _files = [f for f in files if f.endswith('_reoriented.nii.gz')]
         else:
             _files = [f for f in files if f.endswith('_corrected.nii.gz')]
+
         if len(_files) == 0:
-            # skip this session if no reoriented file is found
-            print(f"No reoriented file found in {session_path}, skipping")
+            # skip this session if no file is found
+            print(f"Warning: No {target} file found in {session_path}, skipping")
             continue
+
+        if len(_files) > 1:
+            print(f"Warning: Multiple {target} files found in {session_path}, using the first one")
+
         mri_file = _files[0]
         mri_files.append(os.path.join(session_path, mri_file))
 
@@ -79,16 +118,33 @@ def make_output_sessions(f_input):
     var_path = os.path.join(var_path, f_prefix + '_brain.nii.gz')
     return var_path
 # Make a list of inputs
+valid_subs = []
 if is_find_sessions:
     files_input = []
     for sub in subs:
         files_input += get_mri_session(sub)
+
+    if len(files_input) == 0:
+        print("Error: No valid MRI files found in any session")
+        sys.exit(1)
+
     files_brain = [make_output_sessions(f_in) for f_in in files_input]
     print('one file input', files_input[0])
     print('one file output', files_brain[0])
 else:
-    files_input = [get_mri(sub) for sub in subs]
-    files_brain = [make_output(f_in, sub) for f_in, sub in zip(files_input, subs)]
+    # Get MRI files and filter out None values, keeping track of valid subs
+    files_input = []
+    for sub in subs:
+        mri = get_mri(sub)
+        if mri is not None:
+            files_input.append(mri)
+            valid_subs.append(sub)
+
+    if len(files_input) == 0:
+        print("Error: No valid MRI files found")
+        sys.exit(1)
+
+    files_brain = [make_output(f_in, sub) for f_in, sub in zip(files_input, valid_subs)]
 
 # If isotropic resampling was requested, add conversion commands and switch inputs to isotropic files
 conv_commands = []
@@ -113,7 +169,7 @@ if is_isotropic:
     if is_find_sessions:
         files_brain = [make_output_sessions(f_in) for f_in in files_input]
     else:
-        files_brain = [make_output(f_in, sub) for f_in, sub in zip(files_input, subs)]
+        files_brain = [make_output(f_in, sub) for f_in, sub in zip(files_input, valid_subs)]
 
 # Make a list of commands for brain extraction
 # start from conv_commands so conversions run first (if any)

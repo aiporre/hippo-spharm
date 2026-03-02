@@ -79,6 +79,8 @@ python scripts/segment_hippocampus.py $DATAPATH -t brain
 python scripts/extract_hipp_mesh.py /media/$USER/mirko/HCP_aging/HCPAging_BIDS -t brain
 # run fix mesh script
 conda activate remesh
+# for this you need Manifold binary in your scripts folder. Compile and copy it there:
+#   ...compilation...aww..may the force be with you.
 python scripts/fix_meshes.py $DATAPATH ./scripts/manifold -N 3000 --skip -t 0
 
 ```
